@@ -14,12 +14,9 @@ st.set_page_config(
 )
 
 # --- API and Model Configuration ---
-# This is now at the top, so it runs only once and is more efficient.
 try:
-    # Use Streamlit's secrets management for the API key
     api_key = st.secrets["GOOGLE_API_KEY"]
     genai.configure(api_key=api_key)
-    # Initialize the model once for the entire session
     llm_model = genai.GenerativeModel('gemini-1.5-flash')
 except KeyError:
     st.error("Error: GOOGLE_API_KEY not found. Please add it to your Streamlit secrets.")
@@ -35,6 +32,21 @@ except FileNotFoundError:
     st.error("Error: The model file 'early_warning_model_pipeline.joblib' was not found.")
     st.stop()
 
+# --- NEW: Data Loading with Caching ---
+@st.cache_data
+def load_data(filepath):
+    """Loads the student dataset for calculating averages."""
+    try:
+        return pd.read_csv(filepath, sep=';')
+    except FileNotFoundError:
+        st.error(f"Error: The data file '{filepath}' was not found.")
+        return None
+
+# Load the full dataset to use for comparisons
+df = load_data('student-mat.csv')
+if df is None:
+    st.stop()
+
 # --------------------
 # 2. HELPER FUNCTIONS
 # --------------------
@@ -42,13 +54,10 @@ except FileNotFoundError:
 def generate_llm_advice(risk_level, key_features):
     """
     Generates a personalized and structured mentoring message using the Gemini model.
-    This function now uses a much more detailed and structured prompt.
     """
-    # Mappings for providing more descriptive context to the AI
     school_support_map = {'yes': 'is receiving extra educational support', 'no': 'is not currently receiving extra educational support'}
     higher_edu_map = {'yes': 'Aspires to pursue higher education', 'no': 'Does not plan to pursue higher education'}
 
-    # The new, advanced prompt with a clear role, context, and a required output format
     prompt = f"""
     **Role and Goal:** You are an expert, empathetic, and highly motivational student mentor. Your goal is to provide supportive, personalized, and actionable advice to a high school student based on their academic profile. Your tone should be encouraging and constructive, never judgmental.
 
@@ -88,10 +97,10 @@ def generate_llm_advice(risk_level, key_features):
     except Exception as e:
         return f"Could not generate mentoring advice due to an API error: {e}"
 
-def display_results(risk_level, advice):
+# --- UPGRADED: display_results function ---
+def display_results(risk_level, advice, student_input, full_dataset):
     """
-    Displays the predicted risk and LLM advice.
-    This now uses st.markdown for advice to render formatting correctly.
+    Displays the prediction, a visual snapshot, and the LLM advice.
     """
     color = "green"
     if risk_level == 'High':
@@ -101,7 +110,37 @@ def display_results(risk_level, advice):
 
     st.header(f"Assessment Complete", divider=color)
     st.subheader(f"Predicted Risk: :{color}[{risk_level}]")
-    
+
+    # --- NEW: Student Snapshot Section ---
+    st.subheader("Student Snapshot vs. Class Average")
+
+    avg_g3 = full_dataset['G3'].mean()
+    avg_absences = full_dataset['absences'].mean()
+    avg_studytime = full_dataset['studytime'].mean()
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric(
+            label="Final Grade (G3)",
+            value=f"{student_input['G3']}",
+            delta=f"{student_input['G3'] - avg_g3:.1f} (from average)"
+        )
+    with col2:
+        st.metric(
+            label="Absences",
+            value=f"{student_input['absences']}",
+            delta=f"{student_input['absences'] - avg_absences:.1f} (from average)",
+            delta_color="inverse"
+        )
+    with col3:
+        study_time_map = {1: "< 2 hrs", 2: "2-5 hrs", 3: "5-10 hrs", 4: "> 10 hrs"}
+        st.metric(
+            label="Weekly Study Time",
+            value=study_time_map.get(student_input['studytime']),
+            delta=f"{student_input['studytime'] - avg_studytime:.1f} (from avg. index)"
+        )
+    # --- END of new section ---
+
     st.subheader("Personalized Mentoring Advice")
     with st.container(border=True):
         st.markdown(advice)
@@ -113,15 +152,14 @@ def display_results(risk_level, advice):
 st.title("🎓 AI-Powered Student Mentor")
 st.markdown("Enter a student's data to get a personalized risk assessment and mentoring advice.")
 
-# Create the input form
 col1, col2, col3 = st.columns(3)
-
+# (Your UI code for col1, col2, col3 remains exactly the same here...)
 with col1:
     school = st.selectbox("School", ["GP", "MS"])
     sex = st.selectbox("Sex", ["M", "F"])
     age = st.slider("Age", 15, 22, 17)
     address = st.selectbox("Address Type", ["U", "R"])
-    famsize = st.selectbox("Family Size", ["GT3", "LE3"])
+    famsize = st.selectbox("Family Size", ["GT3", "LE3"], format_func=lambda x: "Greater than 3" if x == "GT3" else "3 or less") # Friendlier label
     Pstatus = st.selectbox("Parent's Status", ["T", "A"])
     Medu = st.slider("Mother's Education (0-4)", 0, 4)
     Fedu = st.slider("Father's Education (0-4)", 0, 4)
@@ -156,7 +194,6 @@ with col3:
     guardian = st.selectbox("Guardian", ["mother", "father", "other"])
 
 
-# Button to trigger the analysis
 if st.button("Generate Mentoring Advice", type="primary"):
     with st.spinner("Analyzing student profile..."):
         input_data = {
@@ -176,11 +213,13 @@ if st.button("Generate Mentoring Advice", type="primary"):
             risk_labels = model_pipeline.classes_
             predicted_risk = risk_labels[prediction_proba.argmax()]
             
-            # The key_features dictionary now includes the 'higher' aspiration
             key_features_for_llm = {**input_data}
 
             mentoring_advice = generate_llm_advice(predicted_risk, key_features_for_llm)
-            display_results(predicted_risk, mentoring_advice)
+            
+            # --- UPDATED: Call to the new display_results function ---
+            display_results(predicted_risk, mentoring_advice, input_data, df)
 
         except Exception as e:
             st.error(f"An error occurred during prediction: {e}")
+
