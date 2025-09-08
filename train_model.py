@@ -37,12 +37,20 @@ preprocessor = ColumnTransformer(
 
 # Create the full pipeline with preprocessing and the model
 model_pipeline = Pipeline(steps=[('preprocessor', preprocessor),
-                                 ('classifier', RandomForestClassifier(random_state=42))])
+                                  ('classifier', RandomForestClassifier(random_state=42))])
 
 # Train the model on the full dataset
 model_pipeline.fit(features, target)
 
-# Save the trained model pipeline
+# --- Save the full pipeline for making predictions ---
 joblib.dump(model_pipeline, 'early_warning_model_pipeline.joblib')
+print("Full model pipeline saved to 'early_warning_model_pipeline.joblib'.")
 
-print("Model training complete. A new 'early_warning_model_pipeline.joblib' file has been saved.")
+
+# --- NEW: Extract and save the core classifier for SHAP explanations ---
+# 1. Extract the trained classifier from the final step of the pipeline
+trained_classifier = model_pipeline.named_steps['classifier']
+
+# 2. Save this extracted model to a new file
+joblib.dump(trained_classifier, 'student_risk_classifier.joblib')
+print("Core classifier saved to 'student_risk_classifier.joblib' for SHAP explanations.")
