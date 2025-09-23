@@ -46,15 +46,20 @@ except FileNotFoundError:
 # --- Data Loading with Caching ---
 @st.cache_data
 def load_data(filepath):
-    """Loads the student dataset for calculating averages."""
+    """Loads a single student dataset."""
     try:
         return pd.read_csv(filepath, sep=';')
     except FileNotFoundError:
         st.error(f"Error: The data file '{filepath}' was not found.")
         return None
 
-df = load_data('student-mat.csv')
-if df is not None:
+# Load both math and portuguese student data
+mat_df = load_data('student-mat.csv')
+por_df = load_data('student-por.csv')
+
+# Combine the two dataframes if both are loaded successfully
+if mat_df is not None and por_df is not None:
+    df = pd.concat([mat_df, por_df], ignore_index=True)
     def get_risk_level(grade):
         if grade >= 15:
             return 'Low'
@@ -131,7 +136,7 @@ def generate_llm_advice(risk_level, student_features, grade_trend, top_shap_fact
 
     **Student Profile Analysis:**
     - **Predicted Academic Risk Level:** {risk_level}
-        - **Academic Performance:**
+    - **Academic Performance:**
         - First Period Grade (G1): {student_features['G1']} out of 20
         - Second Period Grade (G2): {student_features['G2']} out of 20
         - Final Grade (G3): {student_features['G3']} out of 20
@@ -175,11 +180,7 @@ def display_shap_explanation(input_df):
             class_names = model_pipeline.classes_
             high_risk_idx = list(class_names).index('High')
 
-            # --- THIS IS THE CRITICAL FIX FOR FEATURE NAMES ---
-            # Overwrite the shap_values object's display_features with the original,
-            # human-readable data from the user input DataFrame.
             shap_values.display_features = input_df.iloc[0]
-            # --- END OF FIX ---
 
             with st.container(border=True):
                 st.write("""
@@ -188,7 +189,7 @@ def display_shap_explanation(input_df):
                 - **<span style='color:blue;'>Blue bars</span>** pushed it **lower**.
                 Even if the final prediction is 'Medium' or 'Low', this chart shows why the student was (or wasn't) considered 'High' risk.
                 """, unsafe_allow_html=True)
-
+                
                 shap.force_plot(
                     shap_values.base_values[0, high_risk_idx],
                     shap_values.values[0, :, high_risk_idx],
@@ -324,6 +325,22 @@ if view_mode == "Individual Student Analysis":
         
         # Save a profile
         save_filename = st.text_input("Filename to save as:", value="new_student.json")
+        if st.button("Save Profile"):
+            # Ensure the input data is current before saving
+            current_data = {
+                'school': school, 'sex': sex, 'age': age, 'address': address,
+                'famsize': famsize, 'Pstatus': Pstatus, 'Medu': Medu, 'Fedu': Fedu,
+                'Mjob': Mjob, 'Fjob': Fjob, 'reason': reason, 'guardian': guardian,
+                'traveltime': traveltime, 'studytime': studytime,
+                'failures': failures, 'schoolsup': schoolsup, 'famsup': famsup,
+                'paid': paid, 'activities': activities, 'nursery': nursery,
+                'higher': higher, 'internet': internet, 'romantic': romantic,
+                'famrel': famrel, 'freetime': freetime, 'goout': goout,
+                'Dalc': Dalc, 'Walc': Walc, 'health': health, 'absences': absences,
+                'G1': G1, 'G2': G2, 'G3': G3
+            }
+            save_student_profile(current_data, save_filename)
+            st.success(f"Profile saved as {save_filename}")
         
         # Load a profile
         try:
@@ -333,7 +350,7 @@ if view_mode == "Individual Student Analysis":
                 loaded_data = load_student_profile(load_filename)
                 if loaded_data:
                     st.session_state.loaded_profile = loaded_data
-                    st.success(f"Profile '{load_filename}' loaded. Press 'Generate Advice' to analyze.")
+                    st.success(f"Profile '{load_filename}' loaded. Please press 'Generate Mentoring Advice' to analyze.")
         except FileNotFoundError:
             st.info("No student history profiles found. Save a profile to get started.")
 
@@ -381,7 +398,7 @@ if view_mode == "Individual Student Analysis":
         reason = st.selectbox("Reason", ['course', 'other', 'home', 'reputation'], index=['course', 'other', 'home', 'reputation'].index(st.session_state.loaded_profile['reason']))
         guardian = st.selectbox("Guardian", ["mother", "father", "other"], index=["mother", "father", "other"].index(st.session_state.loaded_profile['guardian']))
 
-    # This dictionary is now created before the buttons and is available to them
+    # This dictionary is now created from the current UI state
     st.session_state.current_data = {
         'school': school, 'sex': sex, 'age': age, 'address': address,
         'famsize': famsize, 'Pstatus': Pstatus, 'Medu': Medu, 'Fedu': Fedu,
@@ -394,7 +411,7 @@ if view_mode == "Individual Student Analysis":
         'Dalc': Dalc, 'Walc': Walc, 'health': health, 'absences': absences,
         'G1': G1, 'G2': G2, 'G3': G3
     }
-    
+
     if st.button("Generate Mentoring Advice", type="primary"):
         with st.spinner("Analyzing student profile..."):
             input_data = st.session_state.current_data
@@ -402,7 +419,7 @@ if view_mode == "Individual Student Analysis":
             try:
                 pred_proba = model_pipeline.predict_proba(input_df)[0]
                 pred_risk = model_pipeline.classes_[pred_proba.argmax()]
-                st.session_state.pred_risk = pred_risk  # Store the result in session state
+                st.session_state.pred_risk = pred_risk
 
                 processed_input = model_pipeline.named_steps['preprocessor'].transform(input_df)
                 shap_values = explainer(processed_input)
@@ -420,12 +437,6 @@ if view_mode == "Individual Student Analysis":
                 display_results(pred_risk, advice, input_data, df, input_df)
             except Exception as e:
                 st.error(f"An error occurred during prediction: {e}")
-    
-    # This button now correctly uses the current_data from session state
-    if st.sidebar.button("Save Profile"):
-        save_student_profile(st.session_state.current_data, save_filename)
-        st.sidebar.success(f"Profile saved as {save_filename}")
-
 
     st.header("What-If Analysis", divider=True)
     st.markdown("Select a feature to see how changing its value impacts the risk prediction.")
@@ -445,7 +456,7 @@ if view_mode == "Individual Student Analysis":
                     new_value = st.slider(f"Change '{feature_to_change}' to:", 0, 93, original_value)
                 elif feature_to_change == 'failures':
                     new_value = st.slider(f"Change '{feature_to_change}' to:", 0, 4, original_value)
-                else: # studytime
+                else:
                     new_value = st.slider(f"Change '{feature_to_change}' to:", 1, 4, original_value)
             
             what_if_data = st.session_state.current_data.copy()
