@@ -6,6 +6,7 @@ import shap
 import matplotlib.pyplot as plt
 import json
 import os
+import psycopg2
 
 # --------------------
 # 1. SETUP AND CONFIGURATION
@@ -82,20 +83,36 @@ except Exception as e:
 # --------------------
 # 2. HELPER FUNCTIONS
 # --------------------
+
+@st.cache_resource
+def init_connection():
+    return psycopg2.connect(**st.secrets["postgres"])
+
+conn = init_connection()
+
 def save_student_profile(student_data, filename):
-    """Saves a student profile to a JSON file."""
-    if not os.path.exists("student_history"):
-        os.makedirs("student_history")
-    filepath = os.path.join("student_history", filename)
-    with open(filepath, 'w') as f:
-        json.dump(student_data, f, indent=4)
+    """Saves a student profile to a PostgreSQL database."""
+    with conn.cursor() as cur:
+        try:
+            cur.execute(
+                "INSERT INTO student_profiles (filename, data) VALUES (%s, %s)",
+                (filename, json.dumps(student_data))
+            )
+            conn.commit()
+            return True
+        except psycopg2.IntegrityError:
+            conn.rollback()
+            return False
 
 def load_student_profile(filename):
-    """Loads a student profile from a JSON file."""
-    filepath = os.path.join("student_history", filename)
-    if os.path.exists(filepath):
-        with open(filepath, 'r') as f:
-            return json.load(f)
+    """Loads a student profile from a PostgreSQL database."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT data FROM student_profiles WHERE filename = %s", (filename,)
+        )
+        result = cur.fetchone()
+        if result:
+            return result[0]
     return None
 
 def get_grade_trend(g1, g2, g3):
@@ -305,8 +322,9 @@ if view_mode == "Individual Student Analysis":
     st.title("雌 AI-Powered Student Mentor")
     st.markdown("Enter student data for a risk assessment and risk-based action routing.")
 
-    if 'loaded_profile' not in st.session_state:
-        st.session_state.loaded_profile = {
+    # Initialize session state for all widgets
+    if 'profile_data' not in st.session_state:
+        st.session_state.profile_data = {
             'school': 'GP', 'sex': 'M', 'age': 17, 'address': 'U',
             'famsize': 'GT3', 'Pstatus': 'T', 'Medu': 2, 'Fedu': 2,
             'Mjob': 'other', 'Fjob': 'other', 'reason': 'course', 'guardian': 'mother',
@@ -318,103 +336,94 @@ if view_mode == "Individual Student Analysis":
         }
     if 'pred_risk' not in st.session_state:
         st.session_state.pred_risk = 'N/A'
+
+    # Retrieve all filenames from the database for the selectbox
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT filename FROM student_profiles")
+            history_files = [row[0] for row in cur.fetchall()]
+    except psycopg2.Error as e:
+        st.warning("Database connection failed. Check your `secrets.toml` or connection.")
+        history_files = []
     
     with st.sidebar:
         st.subheader("Student Profile Management")
         st.write("Save the current profile or load a past one.")
         
+        # Load a profile
+        load_filename = st.selectbox("Select Profile to Load", ["- Select -"] + history_files)
+        if load_filename != "- Select -":
+            loaded_data = load_student_profile(load_filename)
+            if loaded_data:
+                st.session_state.profile_data = loaded_data
+                st.success(f"Profile '{load_filename}' loaded. Press 'Generate Mentoring Advice' to analyze.")
+        
         # Save a profile
         save_filename = st.text_input("Filename to save as:", value="new_student.json")
         if st.button("Save Profile"):
-            # Ensure the input data is current before saving
-            current_data = {
-                'school': school, 'sex': sex, 'age': age, 'address': address,
-                'famsize': famsize, 'Pstatus': Pstatus, 'Medu': Medu, 'Fedu': Fedu,
-                'Mjob': Mjob, 'Fjob': Fjob, 'reason': reason, 'guardian': guardian,
-                'traveltime': traveltime, 'studytime': studytime,
-                'failures': failures, 'schoolsup': schoolsup, 'famsup': famsup,
-                'paid': paid, 'activities': activities, 'nursery': nursery,
-                'higher': higher, 'internet': internet, 'romantic': romantic,
-                'famrel': famrel, 'freetime': freetime, 'goout': goout,
-                'Dalc': Dalc, 'Walc': Walc, 'health': health, 'absences': absences,
-                'G1': G1, 'G2': G2, 'G3': G3
-            }
-            save_student_profile(current_data, save_filename)
-            st.success(f"Profile saved as {save_filename}")
-        
-        # Load a profile
-        try:
-            history_files = [f for f in os.listdir("student_history") if f.endswith('.json')]
-            load_filename = st.selectbox("Select Profile to Load", ["- Select -"] + history_files)
-            if load_filename != "- Select -":
-                loaded_data = load_student_profile(load_filename)
-                if loaded_data:
-                    st.session_state.loaded_profile = loaded_data
-                    st.success(f"Profile '{load_filename}' loaded. Please press 'Generate Mentoring Advice' to analyze.")
-        except FileNotFoundError:
-            st.info("No student history profiles found. Save a profile to get started.")
+            if save_student_profile(st.session_state.profile_data, save_filename):
+                st.success(f"Profile saved as {save_filename}")
+            else:
+                st.error(f"Error: A profile named '{save_filename}' already exists.")
 
     ui_cols = st.columns(3)
     with ui_cols[0]:
-        school = st.selectbox("School", ["GP", "MS"], index=["GP", "MS"].index(st.session_state.loaded_profile['school']))
-        sex = st.selectbox("Sex", ["M", "F"], index=["M", "F"].index(st.session_state.loaded_profile['sex']))
-        age = st.slider("Age", 15, 22, st.session_state.loaded_profile['age'])
-        address = st.selectbox("Address Type", ["U", "R"], index=["U", "R"].index(st.session_state.loaded_profile['address']))
-        famsize = st.selectbox(
+        st.selectbox("School", ["GP", "MS"], index=["GP", "MS"].index(st.session_state.profile_data['school']), key='school')
+        st.selectbox("Sex", ["M", "F"], index=["M", "F"].index(st.session_state.profile_data['sex']), key='sex')
+        st.slider("Age", 15, 22, st.session_state.profile_data['age'], key='age')
+        st.selectbox("Address Type", ["U", "R"], index=["U", "R"].index(st.session_state.profile_data['address']), key='address')
+        st.selectbox(
             "Family Size", ["GT3", "LE3"],
             format_func=lambda x: "Greater than 3" if x == "GT3" else "3 or less",
-            index=["GT3", "LE3"].index(st.session_state.loaded_profile['famsize'])
+            index=["GT3", "LE3"].index(st.session_state.profile_data['famsize']), key='famsize'
         )
-        Pstatus = st.selectbox("Parent's Status", ["T", "A"], index=["T", "A"].index(st.session_state.loaded_profile['Pstatus']))
-        Medu = st.slider("Mother's Education (0-4)", 0, 4, st.session_state.loaded_profile['Medu'])
-        Fedu = st.slider("Father's Education (0-4)", 0, 4, st.session_state.loaded_profile['Fedu'])
-        traveltime = st.slider("Travel Time (1-4)", 1, 4, st.session_state.loaded_profile['traveltime'])
-        studytime = st.slider("Study Time (1-4)", 1, 4, st.session_state.loaded_profile['studytime'])
-        failures = st.slider("Past Failures", 0, 4, st.session_state.loaded_profile['failures'])
+        st.selectbox("Parent's Status", ["T", "A"], index=["T", "A"].index(st.session_state.profile_data['Pstatus']), key='Pstatus')
+        st.slider("Mother's Education (0-4)", 0, 4, st.session_state.profile_data['Medu'], key='Medu')
+        st.slider("Father's Education (0-4)", 0, 4, st.session_state.profile_data['Fedu'], key='Fedu')
+        st.slider("Travel Time (1-4)", 1, 4, st.session_state.profile_data['traveltime'], key='traveltime')
+        st.slider("Study Time (1-4)", 1, 4, st.session_state.profile_data['studytime'], key='studytime')
+        st.slider("Past Failures", 0, 4, st.session_state.profile_data['failures'], key='failures')
 
     with ui_cols[1]:
-        schoolsup = st.selectbox("School Support", ["yes", "no"], index=["yes", "no"].index(st.session_state.loaded_profile['schoolsup']))
-        famsup = st.selectbox("Family Support", ["yes", "no"], index=["yes", "no"].index(st.session_state.loaded_profile['famsup']))
-        paid = st.selectbox("Paid Classes", ["yes", "no"], index=["yes", "no"].index(st.session_state.loaded_profile['paid']))
-        activities = st.selectbox("Extracurricular Activities", ["yes", "no"], index=["yes", "no"].index(st.session_state.loaded_profile['activities']))
-        nursery = st.selectbox("Attended Nursery", ["yes", "no"], index=["yes", "no"].index(st.session_state.loaded_profile['nursery']))
-        higher = st.selectbox("Wants to Take Higher Ed", ["yes", "no"], index=["yes", "no"].index(st.session_state.loaded_profile['higher']))
-        internet = st.selectbox("Internet Access", ["yes", "no"], index=["yes", "no"].index(st.session_state.loaded_profile['internet']))
-        romantic = st.selectbox("In a Romantic Relationship", ["yes", "no"], index=["yes", "no"].index(st.session_state.loaded_profile['romantic']))
-        famrel = st.slider("Family Relationship (1-5)", 1, 5, st.session_state.loaded_profile['famrel'])
-        freetime = st.slider("Free Time (1-5)", 1, 5, st.session_state.loaded_profile['freetime'])
-        goout = st.slider("Going Out (1-5)", 1, 5, st.session_state.loaded_profile['goout'])
+        st.selectbox("School Support", ["yes", "no"], index=["yes", "no"].index(st.session_state.profile_data['schoolsup']), key='schoolsup')
+        st.selectbox("Family Support", ["yes", "no"], index=["yes", "no"].index(st.session_state.profile_data['famsup']), key='famsup')
+        st.selectbox("Paid Classes", ["yes", "no"], index=["yes", "no"].index(st.session_state.profile_data['paid']), key='paid')
+        st.selectbox("Extracurricular Activities", ["yes", "no"], index=["yes", "no"].index(st.session_state.profile_data['activities']), key='activities')
+        st.selectbox("Attended Nursery", ["yes", "no"], index=["yes", "no"].index(st.session_state.profile_data['nursery']), key='nursery')
+        st.selectbox("Wants to Take Higher Ed", ["yes", "no"], index=["yes", "no"].index(st.session_state.profile_data['higher']), key='higher')
+        st.selectbox("Internet Access", ["yes", "no"], index=["yes", "no"].index(st.session_state.profile_data['internet']), key='internet')
+        st.selectbox("In a Romantic Relationship", ["yes", "no"], index=["yes", "no"].index(st.session_state.profile_data['romantic']), key='romantic')
+        st.slider("Family Relationship (1-5)", 1, 5, st.session_state.profile_data['famrel'], key='famrel')
+        st.slider("Free Time (1-5)", 1, 5, st.session_state.profile_data['freetime'], key='freetime')
+        st.slider("Going Out (1-5)", 1, 5, st.session_state.profile_data['goout'], key='goout')
 
     with ui_cols[2]:
-        Dalc = st.slider("Workday Alcohol (1-5)", 1, 5, st.session_state.loaded_profile['Dalc'])
-        Walc = st.slider("Weekend Alcohol (1-5)", 1, 5, st.session_state.loaded_profile['Walc'])
-        health = st.slider("Health Status (1-5)", 1, 5, st.session_state.loaded_profile['health'])
-        absences = st.slider("Absences", 0, 93, st.session_state.loaded_profile['absences'])
-        G1 = st.slider("First Period Grade (0-20)", 0, 20, st.session_state.loaded_profile['G1'])
-        G2 = st.slider("Second Period Grade (0-20)", 0, 20, st.session_state.loaded_profile['G2'])
-        G3 = st.slider("Final Grade (0-20)", 0, 20, st.session_state.loaded_profile['G3'])
-        Mjob = st.selectbox("Mother's Job", ['at_home', 'health', 'other', 'services', 'teacher'], index=['at_home', 'health', 'other', 'services', 'teacher'].index(st.session_state.loaded_profile['Mjob']))
-        Fjob = st.selectbox("Father's Job", ['at_home', 'health', 'other', 'services', 'teacher'], index=['at_home', 'health', 'other', 'services', 'teacher'].index(st.session_state.loaded_profile['Fjob']))
-        reason = st.selectbox("Reason", ['course', 'other', 'home', 'reputation'], index=['course', 'other', 'home', 'reputation'].index(st.session_state.loaded_profile['reason']))
-        guardian = st.selectbox("Guardian", ["mother", "father", "other"], index=["mother", "father", "other"].index(st.session_state.loaded_profile['guardian']))
-
-    # This dictionary is now created from the current UI state
-    st.session_state.current_data = {
-        'school': school, 'sex': sex, 'age': age, 'address': address,
-        'famsize': famsize, 'Pstatus': Pstatus, 'Medu': Medu, 'Fedu': Fedu,
-        'Mjob': Mjob, 'Fjob': Fjob, 'reason': reason, 'guardian': guardian,
-        'traveltime': traveltime, 'studytime': studytime,
-        'failures': failures, 'schoolsup': schoolsup, 'famsup': famsup,
-        'paid': paid, 'activities': activities, 'nursery': nursery,
-        'higher': higher, 'internet': internet, 'romantic': romantic,
-        'famrel': famrel, 'freetime': freetime, 'goout': goout,
-        'Dalc': Dalc, 'Walc': Walc, 'health': health, 'absences': absences,
-        'G1': G1, 'G2': G2, 'G3': G3
-    }
+        st.slider("Workday Alcohol (1-5)", 1, 5, st.session_state.profile_data['Dalc'], key='Dalc')
+        st.slider("Weekend Alcohol (1-5)", 1, 5, st.session_state.profile_data['Walc'], key='Walc')
+        st.slider("Health Status (1-5)", 1, 5, st.session_state.profile_data['health'], key='health')
+        st.slider("Absences", 0, 93, st.session_state.profile_data['absences'], key='absences')
+        st.slider("First Period Grade (0-20)", 0, 20, st.session_state.profile_data['G1'], key='G1')
+        st.slider("Second Period Grade (0-20)", 0, 20, st.session_state.profile_data['G2'], key='G2')
+        st.slider("Final Grade (0-20)", 0, 20, st.session_state.profile_data['G3'], key='G3')
+        st.selectbox("Mother's Job", ['at_home', 'health', 'other', 'services', 'teacher'], index=['at_home', 'health', 'other', 'services', 'teacher'].index(st.session_state.profile_data['Mjob']), key='Mjob')
+        st.selectbox("Father's Job", ['at_home', 'health', 'other', 'services', 'teacher'], index=['at_home', 'health', 'other', 'services', 'teacher'].index(st.session_state.profile_data['Fjob']), key='Fjob')
+        st.selectbox("Reason", ['course', 'other', 'home', 'reputation'], index=['course', 'other', 'home', 'reputation'].index(st.session_state.profile_data['reason']), key='reason')
+        st.selectbox("Guardian", ["mother", "father", "other"], index=["mother", "father", "other"].index(st.session_state.profile_data['guardian']), key='guardian')
 
     if st.button("Generate Mentoring Advice", type="primary"):
         with st.spinner("Analyzing student profile..."):
-            input_data = st.session_state.current_data
+            input_data = st.session_state.profile_data = {
+                'school': st.session_state['school'], 'sex': st.session_state['sex'], 'age': st.session_state['age'], 'address': st.session_state['address'],
+                'famsize': st.session_state['famsize'], 'Pstatus': st.session_state['Pstatus'], 'Medu': st.session_state['Medu'], 'Fedu': st.session_state['Fedu'],
+                'Mjob': st.session_state['Mjob'], 'Fjob': st.session_state['Fjob'], 'reason': st.session_state['reason'], 'guardian': st.session_state['guardian'],
+                'traveltime': st.session_state['traveltime'], 'studytime': st.session_state['studytime'],
+                'failures': st.session_state['failures'], 'schoolsup': st.session_state['schoolsup'], 'famsup': st.session_state['famsup'],
+                'paid': st.session_state['paid'], 'activities': st.session_state['activities'], 'nursery': st.session_state['nursery'],
+                'higher': st.session_state['higher'], 'internet': st.session_state['internet'], 'romantic': st.session_state['romantic'],
+                'famrel': st.session_state['famrel'], 'freetime': st.session_state['freetime'], 'goout': st.session_state['goout'],
+                'Dalc': st.session_state['Dalc'], 'Walc': st.session_state['Walc'], 'health': st.session_state['health'],
+                'absences': st.session_state['absences'], 'G1': st.session_state['G1'], 'G2': st.session_state['G2'], 'G3': st.session_state['G3']
+            }
             input_df = pd.DataFrame([input_data])
             try:
                 pred_proba = model_pipeline.predict_proba(input_df)[0]
@@ -449,7 +458,7 @@ if view_mode == "Individual Student Analysis":
                     ['absences', 'G1', 'G2', 'G3', 'failures', 'studytime']
                 )
             with what_if_cols[1]:
-                original_value = st.session_state.current_data[feature_to_change]
+                original_value = st.session_state.profile_data.get(feature_to_change, st.session_state.profile_data[feature_to_change])
                 if feature_to_change in ['G1', 'G2', 'G3']:
                     new_value = st.slider(f"Change '{feature_to_change}' to:", 0, 20, original_value)
                 elif feature_to_change == 'absences':
@@ -459,7 +468,7 @@ if view_mode == "Individual Student Analysis":
                 else:
                     new_value = st.slider(f"Change '{feature_to_change}' to:", 1, 4, original_value)
             
-            what_if_data = st.session_state.current_data.copy()
+            what_if_data = st.session_state.profile_data.copy()
             what_if_data[feature_to_change] = new_value
             
             if st.button("Run What-If Prediction", key="what_if_button"):
