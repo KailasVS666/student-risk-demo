@@ -1,21 +1,33 @@
-body {
-    font-family: 'Inter', sans-serif;
-    background-color: #f3f4f6;
+/* --- Wizard Progress Bar --- */
+.progress-step {
+    @apply flex items-center justify-center text-center w-10 h-10 border-2 rounded-full font-semibold transition duration-500 ease-in-out relative;
+    @apply bg-white border-gray-300 text-gray-500;
 }
-.container {
-    max-width: 1200px;
-    margin: auto;
-    padding: 2rem;
+
+.progress-step.active {
+    @apply bg-indigo-600 border-indigo-600 text-white;
 }
-.section-header {
-    border-bottom: 2px solid #e5e7eb;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1.5rem;
+
+.progress-step .step-label {
+    @apply absolute top-12 text-xs font-medium w-32 text-center text-gray-500;
 }
-.btn-primary {
-    background-color: #4f46e5;
-    color: white;
+
+.progress-step.active .step-label {
+    @apply text-indigo-600;
 }
-.btn-primary:hover {
-    background-color: #4338ca;
+
+
+/* --- Form Step Styling --- */
+.form-step {
+    display: none;
+    animation: fadeIn 0.5s;
+}
+
+.form-step.active-step {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }

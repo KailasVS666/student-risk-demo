@@ -6,10 +6,12 @@
     <title>AI Student Mentor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Add Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100">
 
+<!-- Login/Signup View -->
 <div id="auth-container" class="container mx-auto p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-screen">
     <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
         <h2 class="text-3xl font-bold text-center text-gray-800">Welcome!</h2>
@@ -31,6 +33,7 @@
     </div>
 </div>
 
+<!-- Main Application View (Initially Hidden) -->
 <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 hidden">
     <header class="text-center mb-10 relative">
         <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800">
@@ -67,7 +70,7 @@
             </div>
             <hr class="my-6">
             <div>
-                <button id="generateAdviceBtn" class="w-full px-4 py-3 rounded-md font-semibold text-white bg-indigo-600 hover:bg-indigo-700 text-lg">
+                <button id="generateAdviceBtn" class="w-full px-4 py-3 rounded-md font-semibold text-white bg-indigo-600 hover:bg-indigo-700 text-lg disabled:opacity-50" disabled>
                     Generate Mentoring Advice
                 </button>
             </div>
@@ -76,230 +79,285 @@
         <div class="lg:col-span-3">
             <section id="inputForm" class="p-6 bg-white rounded-xl shadow-lg border border-gray-200">
                 <h2 class="text-2xl font-bold mb-4 text-gray-800 section-header">Student Profile</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                    
-                    <div>
-                        <h3 class="text-lg font-bold mb-2">Demographics & Family</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">School</label>
-                                <select id="school" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="GP">Gabriel Pereira</option>
-                                    <option value="MS">Mousinho da Silveira</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Sex</label>
-                                <select id="sex" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="F">Female</option>
-                                    <option value="M">Male</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Age: <span id="ageValue">17</span></label>
-                                <input type="range" id="age" min="15" max="22" value="17" class="mt-1 block w-full">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Address</label>
-                                <select id="address" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="U">Urban</option>
-                                    <option value="R">Rural</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Family Size</label>
-                                <select id="famsize" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="GT3">Greater than 3</option>
-                                    <option value="LE3">3 or less</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Parent's Status</label>
-                                <select id="Pstatus" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="T">Together</option>
-                                    <option value="A">Apart</option>
-                                </select>
-                            </div>
-                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Family Relationship: <span id="famrelValue">4</span></label>
-                                <input type="range" id="famrel" min="1" max="5" value="4" class="mt-1 block w-full">
-                            </div>
-                        </div>
+                
+                <!-- NEW: Progress Bar -->
+                <div class="mb-8">
+                    <div class="flex items-center">
+                        <div class="progress-step active" data-step="1">1<span class="step-label">Demographics</span></div>
+                        <div class="flex-auto border-t-2 transition duration-500 ease-in-out progress-line"></div>
+                        <div class="progress-step" data-step="2">2<span class="step-label">Academics</span></div>
+                        <div class="flex-auto border-t-2 transition duration-500 ease-in-out progress-line"></div>
+                        <div class="progress-step" data-step="3">3<span class="step-label">Lifestyle</span></div>
                     </div>
-
-                    <div>
-                        <h3 class="text-lg font-bold mb-2">Academics & Support</h3>
-                        <div class="space-y-4">
-                           <div>
-                                <label class="block text-sm font-medium text-gray-700">Mother's Education: <span id="MeduValue">2</span></label>
-                                <input type="range" id="Medu" min="0" max="4" value="2" class="mt-1 block w-full">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Father's Education: <span id="FeduValue">2</span></label>
-                                <input type="range" id="Fedu" min="0" max="4" value="2" class="mt-1 block w-full">
-                            </div>
-                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Mother's Job</label>
-                                <select id="Mjob" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="teacher">Teacher</option>
-                                    <option value="health">Health</option>
-                                    <option value="services">Services</option>
-                                    <option value="at_home">At Home</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Father's Job</label>
-                                <select id="Fjob" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="teacher">Teacher</option>
-                                    <option value="health">Health</option>
-                                    <option value="services">Services</option>
-                                    <option value="at_home">At Home</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Reason for School</label>
-                                <select id="reason" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="home">Close to Home</option>
-                                    <option value="reputation">Reputation</option>
-                                    <option value="course">Course Preference</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Guardian</label>
-                                <select id="guardian" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="mother">Mother</option>
-                                    <option value="father">Father</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Weekly Study Time: <span id="studytimeValue">2</span></label>
-                                <input type="range" id="studytime" min="1" max="4" value="2" class="mt-1 block w-full">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">School Support</label>
-                                <select id="schoolsup" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="yes">Yes</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Family Support</label>
-                                <select id="famsup" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="yes">Yes</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Paid Classes</label>
-                                <select id="paid" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="yes">Yes</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Wants Higher Ed</label>
-                                <select id="higher" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="yes">Yes</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <h3 class="text-lg font-bold mb-2">Lifestyle & Grades</h3>
-                        <div class="space-y-4">
-                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Activities</label>
-                                <select id="activities" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="yes">Yes</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Attended Nursery</label>
-                                <select id="nursery" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="yes">Yes</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Internet Access</label>
-                                <select id="internet" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="yes">Yes</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Romantic Relationship</label>
-                                <select id="romantic" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="yes">Yes</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Travel Time: <span id="traveltimeValue">1</span></label>
-                                <input type="range" id="traveltime" min="1" max="4" value="1" class="mt-1 block w-full">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Free Time: <span id="freetimeValue">3</span></label>
-                                <input type="range" id="freetime" min="1" max="5" value="3" class="mt-1 block w-full">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Going Out: <span id="gooutValue">3</span></label>
-                                <input type="range" id="goout" min="1" max="5" value="3" class="mt-1 block w-full">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Workday Alcohol: <span id="DalcValue">1</span></label>
-                                <input type="range" id="Dalc" min="1" max="5" value="1" class="mt-1 block w-full">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Weekend Alcohol: <span id="WalcValue">1</span></label>
-                                <input type="range" id="Walc" min="1" max="5" value="1" class="mt-1 block w-full">
-                            </div>
-                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Health Status: <span id="healthValue">3</span></label>
-                                <input type="range" id="health" min="1" max="5" value="3" class="mt-1 block w-full">
-                            </div>
-                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Absences: <span id="absencesValue">5</span></label>
-                                <input type="range" id="absences" min="0" max="93" value="5" class="mt-1 block w-full">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Past Failures: <span id="failuresValue">0</span></label>
-                                <input type="range" id="failures" min="0" max="4" value="0" class="mt-1 block w-full">
-                            </div>
-                             <div>
-                                <label class="block text-sm font-medium text-gray-700">First Grade (G1): <span id="G1Value">10</span></label>
-                                <input type="range" id="G1" min="0" max="20" value="10" class="mt-1 block w-full">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Second Grade (G2): <span id="G2Value">10</span></label>
-                                <input type="range" id="G2" min="0" max="20" value="10" class="mt-1 block w-full">
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
+
+                <!-- Step 1: Demographics & Family -->
+                <div class="form-step active-step">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-bold mb-2">Demographics & Family</h3>
+                            <div class="space-y-4">
+                                <!-- All fields from column 1 go here -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">School</label>
+                                    <select id="school" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="GP">Gabriel Pereira</option>
+                                        <option value="MS">Mousinho da Silveira</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Sex</label>
+                                    <select id="sex" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="F">Female</option>
+                                        <option value="M">Male</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Age: <span id="ageValue">17</span></label>
+                                    <input type="range" id="age" min="15" max="22" value="17" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Address</label>
+                                    <select id="address" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="U">Urban</option>
+                                        <option value="R">Rural</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold mb-2 text-white">.</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Family Size</label>
+                                    <select id="famsize" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="GT3">Greater than 3</option>
+                                        <option value="LE3">3 or less</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Parent's Status</label>
+                                    <select id="Pstatus" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="T">Together</option>
+                                        <option value="A">Apart</option>
+                                    </select>
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700">Family Relationship: <span id="famrelValue">4</span></label>
+                                    <input type="range" id="famrel" min="1" max="5" value="4" class="mt-1 block w-full">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Academics & Support -->
+                <div class="form-step">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-bold mb-2">Academics & Support</h3>
+                            <div class="space-y-4">
+                                <!-- All fields from column 2 go here -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Mother's Education: <span id="MeduValue">2</span></label>
+                                    <input type="range" id="Medu" min="0" max="4" value="2" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Father's Education: <span id="FeduValue">2</span></label>
+                                    <input type="range" id="Fedu" min="0" max="4" value="2" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Mother's Job</label>
+                                    <select id="Mjob" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="teacher">Teacher</option>
+                                        <option value="health">Health</option>
+                                        <option value="services">Services</option>
+                                        <option value="at_home">At Home</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Father's Job</label>
+                                    <select id="Fjob" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="teacher">Teacher</option>
+                                        <option value="health">Health</option>
+                                        <option value="services">Services</option>
+                                        <option value="at_home">At Home</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Weekly Study Time: <span id="studytimeValue">2</span></label>
+                                    <input type="range" id="studytime" min="1" max="4" value="2" class="mt-1 block w-full">
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold mb-2 text-white">.</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Reason for School</label>
+                                    <select id="reason" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="home">Close to Home</option>
+                                        <option value="reputation">Reputation</option>
+                                        <option value="course">Course Preference</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Guardian</label>
+                                    <select id="guardian" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="mother">Mother</option>
+                                        <option value="father">Father</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">School Support</label>
+                                    <select id="schoolsup" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Family Support</label>
+                                    <select id="famsup" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Paid Classes</label>
+                                    <select id="paid" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Wants Higher Ed</label>
+                                    <select id="higher" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Lifestyle & Grades -->
+                <div class="form-step">
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-bold mb-2">Lifestyle & Grades</h3>
+                            <div class="space-y-4">
+                                <!-- Fields from column 3, part 1 -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Activities</label>
+                                    <select id="activities" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700">Attended Nursery</label>
+                                    <select id="nursery" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Internet Access</label>
+                                    <select id="internet" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Romantic Relationship</label>
+                                    <select id="romantic" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Travel Time: <span id="traveltimeValue">1</span></label>
+                                    <input type="range" id="traveltime" min="1" max="4" value="1" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Free Time: <span id="freetimeValue">3</span></label>
+                                    <input type="range" id="freetime" min="1" max="5" value="3" class="mt-1 block w-full">
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold mb-2 text-white">.</h3>
+                            <div class="space-y-4">
+                                <!-- Fields from column 3, part 2 -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Going Out: <span id="gooutValue">3</span></label>
+                                    <input type="range" id="goout" min="1" max="5" value="3" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Workday Alcohol: <span id="DalcValue">1</span></label>
+                                    <input type="range" id="Dalc" min="1" max="5" value="1" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Weekend Alcohol: <span id="WalcValue">1</span></label>
+                                    <input type="range" id="Walc" min="1" max="5" value="1" class="mt-1 block w-full">
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700">Health Status: <span id="healthValue">3</span></label>
+                                    <input type="range" id="health" min="1" max="5" value="3" class="mt-1 block w-full">
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700">Absences: <span id="absencesValue">5</span></label>
+                                    <input type="range" id="absences" min="0" max="93" value="5" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Past Failures: <span id="failuresValue">0</span></label>
+                                    <input type="range" id="failures" min="0" max="4" value="0" class="mt-1 block w-full">
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700">First Grade (G1): <span id="G1Value">10</span></label>
+                                    <input type="range" id="G1" min="0" max="20" value="10" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Second Grade (G2): <span id="G2Value">10</span></label>
+                                    <input type="range" id="G2" min="0" max="20" value="10" class="mt-1 block w-full">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NEW: Navigation Buttons -->
+                <div class="mt-8 pt-5">
+                    <div class="flex justify-between">
+                        <button id="prevBtn" class="px-4 py-2 rounded-md font-semibold bg-gray-200 hover:bg-gray-300">Previous</button>
+                        <button id="nextBtn" class="px-4 py-2 rounded-md font-semibold btn-primary">Next</button>
+                    </div>
+                </div>
+
             </section>
 
             <section id="resultsSection" class="mt-8 p-6 bg-white rounded-xl shadow-lg border border-gray-200 hidden">
-                <h2 class="text-2xl font-bold mb-4 text-gray-800 section-header">Mentoring Analysis</h2>
+                <!-- ... results section remains the same ... -->
+                 <h2 class="text-2xl font-bold mb-4 text-gray-800 section-header">Mentoring Analysis</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Left Side: Risk & Advice -->
                     <div>
                         <div class="mb-4">
                             <p class="text-lg font-semibold text-gray-700">Predicted Risk Level: <span id="riskLevel" class="font-bold"></span></p>
                         </div>
                         <div id="adviceOutput" class="mt-6 prose prose-indigo max-w-none"></div>
                     </div>
+                    <!-- Right Side: SHAP Explanation Chart -->
                     <div>
                         <h3 class="text-lg font-semibold text-gray-700">Key Factors Influencing Prediction</h3>
                         <p class="text-sm text-gray-500 mb-2">This chart shows which factors had the biggest impact on the risk prediction. Red bars indicate factors that increased the risk, while blue bars indicate factors that decreased it.</p>
                         <div id="explanationChartContainer" class="mt-4">
+                            <!-- Canvas for Chart.js will go here -->
                             <canvas id="explanationChart"></canvas>
                         </div>
                     </div>

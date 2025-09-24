@@ -18,18 +18,16 @@ async function initializeFirebase() {
 }
 
 function runApp(db, auth) {
+    // --- Existing element selections ---
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app');
     const authError = document.getElementById('auth-error');
-
     const emailInput = document.getElementById('email');
     const passwordInput = document.getElementById('password');
     const loginBtn = document.getElementById('loginBtn');
     const signupBtn = document.getElementById('signupBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const userEmailSpan = document.getElementById('user-email');
-
-    const inputForm = document.getElementById('inputForm');
     const resultsSection = document.getElementById('resultsSection');
     const generateAdviceBtn = document.getElementById('generateAdviceBtn');
     const saveProfileBtn = document.getElementById('saveProfileBtn');
@@ -37,9 +35,17 @@ function runApp(db, auth) {
     const loadProfileSelect = document.getElementById('loadProfileSelect');
 
     let currentUser = null;
-    let explanationChart = null; // Variable to hold the chart instance
+    let explanationChart = null; 
+    
+    // --- NEW: Wizard elements and state ---
+    let currentStep = 0;
+    const formSteps = document.querySelectorAll('.form-step');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const progressSteps = document.querySelectorAll('.progress-step');
+    const progressLines = document.querySelectorAll('.progress-line');
 
-    // --- Authentication Logic ---
+    // --- Authentication Logic (unchanged) ---
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
@@ -73,7 +79,7 @@ function runApp(db, auth) {
         auth.signOut();
     });
 
-    // --- Application Logic ---
+    // --- Application Logic (sliders, forms - unchanged) ---
     const sliderIds = [
         'age', 'Medu', 'Fedu', 'traveltime', 'studytime', 'failures', 
         'famrel', 'freetime', 'goout', 'Dalc', 'Walc', 'health', 'absences', 'G1', 'G2'
@@ -163,20 +169,59 @@ function runApp(db, auth) {
             alert('Failed to load profile.');
         }
     });
+    
+    // --- NEW: Wizard Logic ---
+    const updateWizardUI = () => {
+        // Update form step visibility
+        formSteps.forEach((step, index) => {
+            step.classList.toggle('active-step', index === currentStep);
+        });
 
-    // --- NEW: Function to render the SHAP explanation chart ---
+        // Update progress bar
+        progressSteps.forEach((step, index) => {
+            if (index < currentStep + 1) {
+                step.classList.add('active');
+            } else {
+                step.classList.remove('active');
+            }
+        });
+
+        progressLines.forEach((line, index) => {
+             if (index < currentStep) {
+                line.classList.add('border-indigo-600');
+            } else {
+                line.classList.remove('border-indigo-600');
+            }
+        });
+
+        // Update button visibility and state
+        prevBtn.classList.toggle('hidden', currentStep === 0);
+        nextBtn.classList.toggle('hidden', currentStep === formSteps.length - 1);
+        generateAdviceBtn.disabled = currentStep !== formSteps.length - 1;
+    };
+
+    nextBtn.addEventListener('click', () => {
+        if (currentStep < formSteps.length - 1) {
+            currentStep++;
+            updateWizardUI();
+        }
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentStep > 0) {
+            currentStep--;
+            updateWizardUI();
+        }
+    });
+
+    // --- Chart Rendering Logic (unchanged) ---
     const renderExplanationChart = (explanation) => {
         const ctx = document.getElementById('explanationChart').getContext('2d');
-        
-        // Destroy the old chart instance if it exists
         if (explanationChart) {
             explanationChart.destroy();
         }
-
-        const labels = explanation.map(item => item[0].replace('num__', '').replace('cat__', '')); // Clean up labels
+        const labels = explanation.map(item => item[0].replace('num__', '').replace('cat__', ''));
         const dataValues = explanation.map(item => item[1]);
-        
-        // Assign colors based on positive (risk-increasing) or negative (risk-decreasing) SHAP value
         const backgroundColors = dataValues.map(value => value > 0 ? 'rgba(239, 68, 68, 0.7)' : 'rgba(59, 130, 246, 0.7)');
 
         explanationChart = new Chart(ctx, {
@@ -192,60 +237,31 @@ function runApp(db, auth) {
                 }]
             },
             options: {
-                indexAxis: 'y', // This makes the bar chart horizontal
-                scales: {
-                    x: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'SHAP Value (Impact on High Risk Prediction)'
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false // We don't need a legend for a single dataset
-                    }
-                },
+                indexAxis: 'y',
+                scales: { x: { beginAtZero: true, title: { display: true, text: 'SHAP Value (Impact on High Risk Prediction)' } } },
+                plugins: { legend: { display: false } },
                 responsive: true,
                 maintainAspectRatio: false
             }
         });
     };
 
+    // --- Generate Advice Event Listener (unchanged) ---
     generateAdviceBtn.addEventListener('click', async () => {
         const inputData = getFormData();
         resultsSection.classList.remove('hidden');
         document.getElementById('adviceOutput').innerHTML = '<p class="text-center text-gray-500">Generating advice...</p>';
         document.getElementById('riskLevel').textContent = 'Calculating...';
-
-        // Clear previous chart
         const chartContainer = document.getElementById('explanationChartContainer');
         chartContainer.innerHTML = '<canvas id="explanationChart"></canvas>';
 
-
         try {
-            // --- Call both APIs concurrently for a faster experience ---
             const [riskResponse, adviceResponse, explanationResponse] = await Promise.all([
-                fetch('/predict-risk', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ student_data: inputData })
-                }),
-                fetch('/generate-advice', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ student_data: inputData })
-                }),
-                // --- NEW: Fetch explanation data ---
-                fetch('/explain-prediction', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ student_data: inputData })
-                })
+                fetch('/predict-risk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_data: inputData }) }),
+                fetch('/generate-advice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_data: inputData }) }),
+                fetch('/explain-prediction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_data: inputData }) })
             ]);
 
-            // --- Process Risk Prediction ---
             if (!riskResponse.ok) throw new Error(`Risk prediction failed with status: ${riskResponse.status}`);
             const riskResult = await riskResponse.json();
             const riskLevel = riskResult.risk_level;
@@ -253,13 +269,11 @@ function runApp(db, auth) {
             const riskColor = riskLevel === 'High' ? 'text-red-500' : (riskLevel === 'Medium' ? 'text-yellow-500' : 'text-green-500');
             document.getElementById('riskLevel').className = `font-bold ${riskColor}`;
 
-            // --- Process Advice Generation ---
             if (!adviceResponse.ok) throw new Error(`Advice generation failed with status: ${adviceResponse.status}`);
             const adviceResult = await adviceResponse.json();
             let htmlAdvice = adviceResult.advice.replace(/### (.*)/g, '<h3>$1</h3>').replace(/\n/g, '<br>');
             document.getElementById('adviceOutput').innerHTML = htmlAdvice;
 
-            // --- Process and Render Explanation Chart ---
             if (!explanationResponse.ok) throw new Error(`Explanation failed with status: ${explanationResponse.status}`);
             const explanationResult = await explanationResponse.json();
             if (explanationResult.explanation) {
@@ -271,6 +285,9 @@ function runApp(db, auth) {
             document.getElementById('adviceOutput').innerHTML = `<p class="text-red-500">Failed to generate advice: ${error.message}</p>`;
         }
     });
+
+    // --- Initialize the wizard ---
+    updateWizardUI(); 
 }
 
 document.addEventListener('DOMContentLoaded', initializeFirebase);
