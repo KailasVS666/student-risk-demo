@@ -1,3 +1,8 @@
+/* --- Base Button Style --- */
+.btn-primary {
+    @apply bg-indigo-600 text-white hover:bg-indigo-700;
+}
+
 /* --- Wizard Progress Bar --- */
 .progress-step {
     @apply flex items-center justify-center text-center w-10 h-10 border-2 rounded-full font-semibold transition duration-500 ease-in-out relative;
@@ -17,17 +22,44 @@
 }
 
 
-/* --- Form Step Styling --- */
+/* --- Form Step Styling (CORRECTED) --- */
 .form-step {
-    display: none;
+    display: none !important; /* Use !important to ensure this rule is applied */
     animation: fadeIn 0.5s;
 }
 
 .form-step.active-step {
-    display: block;
+    display: block !important; /* Use !important to ensure this rule is applied */
 }
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* --- Interactive Checklist Styling --- */
+.checklist {
+    list-style: none;
+    padding-left: 0;
+}
+
+.checklist li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.checklist input[type="checkbox"] {
+    @apply w-5 h-5 mr-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500;
+    flex-shrink: 0;
+}
+
+.checklist label {
+    @apply text-gray-700;
+    transition: color 0.2s ease-in-out;
+}
+
+.checklist input[type="checkbox"]:checked + label {
+    @apply text-gray-400 line-through;
 }

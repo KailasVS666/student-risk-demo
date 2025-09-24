@@ -18,7 +18,7 @@ async function initializeFirebase() {
 }
 
 function runApp(db, auth) {
-    // --- Existing element selections ---
+    // --- Element selections ---
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app');
     const authError = document.getElementById('auth-error');
@@ -33,11 +33,12 @@ function runApp(db, auth) {
     const saveProfileBtn = document.getElementById('saveProfileBtn');
     const loadProfileBtn = document.getElementById('loadProfileBtn');
     const loadProfileSelect = document.getElementById('loadProfileSelect');
+    const copyAdviceBtn = document.getElementById('copyAdviceBtn'); // New button
 
     let currentUser = null;
     let explanationChart = null; 
     
-    // --- NEW: Wizard elements and state ---
+    // --- Wizard elements and state ---
     let currentStep = 0;
     const formSteps = document.querySelectorAll('.form-step');
     const prevBtn = document.getElementById('prevBtn');
@@ -170,31 +171,11 @@ function runApp(db, auth) {
         }
     });
     
-    // --- NEW: Wizard Logic ---
+    // --- Wizard Logic (unchanged) ---
     const updateWizardUI = () => {
-        // Update form step visibility
-        formSteps.forEach((step, index) => {
-            step.classList.toggle('active-step', index === currentStep);
-        });
-
-        // Update progress bar
-        progressSteps.forEach((step, index) => {
-            if (index < currentStep + 1) {
-                step.classList.add('active');
-            } else {
-                step.classList.remove('active');
-            }
-        });
-
-        progressLines.forEach((line, index) => {
-             if (index < currentStep) {
-                line.classList.add('border-indigo-600');
-            } else {
-                line.classList.remove('border-indigo-600');
-            }
-        });
-
-        // Update button visibility and state
+        formSteps.forEach((step, index) => step.classList.toggle('active-step', index === currentStep));
+        progressSteps.forEach((step, index) => step.classList.toggle('active', index < currentStep + 1));
+        progressLines.forEach((line, index) => line.classList.toggle('border-indigo-600', index < currentStep));
         prevBtn.classList.toggle('hidden', currentStep === 0);
         nextBtn.classList.toggle('hidden', currentStep === formSteps.length - 1);
         generateAdviceBtn.disabled = currentStep !== formSteps.length - 1;
@@ -214,20 +195,42 @@ function runApp(db, auth) {
         }
     });
 
-    // --- Chart Rendering Logic (unchanged) ---
+    // --- NEW: Feature Dictionary for Chart Tooltips ---
+    const featureDictionary = {
+        'G2': 'Second Period Grade',
+        'G1': 'First Period Grade',
+        'failures': 'Number of Past Failures',
+        'absences': 'Number of School Absences',
+        'Medu': "Mother's Education Level",
+        'higher_no': 'Does Not Want Higher Education',
+        'age': 'Student Age',
+        'goout': 'Frequency of Going Out',
+        'Fedu': "Father's Education Level",
+        'Mjob_other': "Mother's Job is 'Other'",
+        'schoolsup_no': 'No Extra School Support',
+        'romantic_yes': 'In a Romantic Relationship'
+    };
+    
+    const getFeatureDescription = (featureName) => {
+        const cleanedName = featureName.replace('num__', '').replace('cat__', '');
+        return featureDictionary[cleanedName] || cleanedName;
+    };
+
+
+    // --- Chart Rendering Logic (UPDATED with tooltips) ---
     const renderExplanationChart = (explanation) => {
         const ctx = document.getElementById('explanationChart').getContext('2d');
         if (explanationChart) {
             explanationChart.destroy();
         }
-        const labels = explanation.map(item => item[0].replace('num__', '').replace('cat__', ''));
+        const labels = explanation.map(item => item[0]);
         const dataValues = explanation.map(item => item[1]);
         const backgroundColors = dataValues.map(value => value > 0 ? 'rgba(239, 68, 68, 0.7)' : 'rgba(59, 130, 246, 0.7)');
 
         explanationChart = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: labels,
+                labels: labels.map(getFeatureDescription),
                 datasets: [{
                     label: 'Impact on Prediction',
                     data: dataValues,
@@ -238,15 +241,73 @@ function runApp(db, auth) {
             },
             options: {
                 indexAxis: 'y',
-                scales: { x: { beginAtZero: true, title: { display: true, text: 'SHAP Value (Impact on High Risk Prediction)' } } },
-                plugins: { legend: { display: false } },
+                scales: { 
+                    x: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: 'Impact on High Risk Prediction' } 
+                    } 
+                },
+                plugins: { 
+                    legend: { display: false },
+                    // --- NEW: Custom Tooltip Logic ---
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const originalLabel = explanation[context.dataIndex][0];
+                                const description = getFeatureDescription(originalLabel);
+                                let shapValue = context.raw.toFixed(4);
+                                return `${description}: ${shapValue}`;
+                            }
+                        }
+                    }
+                },
                 responsive: true,
                 maintainAspectRatio: false
             }
         });
     };
 
-    // --- Generate Advice Event Listener (unchanged) ---
+    // --- NEW: Function to render advice with interactive checklist ---
+    const renderAdvice = (adviceText) => {
+        const adviceOutput = document.getElementById('adviceOutput');
+        let html = '';
+        
+        // Split advice into sections
+        const sections = adviceText.split('### ');
+        
+        sections.forEach(section => {
+            if (!section.trim()) return;
+
+            const lines = section.split('\n');
+            const title = lines.shift().trim();
+            let content = lines.join('<br>').trim();
+
+            html += `<h3>${title}</h3>`;
+
+            // Special handling for Actionable Steps to create a checklist
+            if (title.includes("Actionable Steps")) {
+                const steps = content.split('<br>').filter(line => line.trim().startsWith('* '));
+                html += '<ul class="checklist">';
+                steps.forEach((step, index) => {
+                    const stepText = step.replace('* ', '').trim();
+                    if(stepText) {
+                        html += `<li>
+                                    <input type="checkbox" id="step-${index}" />
+                                    <label for="step-${index}">${stepText}</label>
+                                 </li>`;
+                    }
+                });
+                html += '</ul>';
+            } else {
+                html += `<p>${content.replace(/\* /g, '<br>&bull; ')}</p>`; // Standard bullet points for other sections
+            }
+        });
+        
+        adviceOutput.innerHTML = html;
+    };
+
+
+    // --- Generate Advice Event Listener (UPDATED to use new render function) ---
     generateAdviceBtn.addEventListener('click', async () => {
         const inputData = getFormData();
         resultsSection.classList.remove('hidden');
@@ -262,6 +323,7 @@ function runApp(db, auth) {
                 fetch('/explain-prediction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_data: inputData }) })
             ]);
 
+            // Process Risk
             if (!riskResponse.ok) throw new Error(`Risk prediction failed with status: ${riskResponse.status}`);
             const riskResult = await riskResponse.json();
             const riskLevel = riskResult.risk_level;
@@ -269,11 +331,12 @@ function runApp(db, auth) {
             const riskColor = riskLevel === 'High' ? 'text-red-500' : (riskLevel === 'Medium' ? 'text-yellow-500' : 'text-green-500');
             document.getElementById('riskLevel').className = `font-bold ${riskColor}`;
 
+            // Process and Render Advice
             if (!adviceResponse.ok) throw new Error(`Advice generation failed with status: ${adviceResponse.status}`);
             const adviceResult = await adviceResponse.json();
-            let htmlAdvice = adviceResult.advice.replace(/### (.*)/g, '<h3>$1</h3>').replace(/\n/g, '<br>');
-            document.getElementById('adviceOutput').innerHTML = htmlAdvice;
+            renderAdvice(adviceResult.advice); // Use the new render function
 
+            // Process and Render Chart
             if (!explanationResponse.ok) throw new Error(`Explanation failed with status: ${explanationResponse.status}`);
             const explanationResult = await explanationResponse.json();
             if (explanationResult.explanation) {
@@ -284,6 +347,20 @@ function runApp(db, auth) {
             console.error("Error during generation process:", error);
             document.getElementById('adviceOutput').innerHTML = `<p class="text-red-500">Failed to generate advice: ${error.message}</p>`;
         }
+    });
+
+    // --- NEW: Copy to Clipboard Logic ---
+    copyAdviceBtn.addEventListener('click', () => {
+        const adviceContent = document.getElementById('adviceContent').innerText;
+        navigator.clipboard.writeText(adviceContent).then(() => {
+            const originalText = copyAdviceBtn.innerHTML;
+            copyAdviceBtn.textContent = 'Copied!';
+            setTimeout(() => {
+                copyAdviceBtn.innerHTML = originalText;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
     });
 
     // --- Initialize the wizard ---
