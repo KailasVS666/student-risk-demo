@@ -66,6 +66,13 @@
                 </button>
             </div>
             <hr class="my-6">
+            
+            <div class="mb-4">
+                <label for="customPrompt" class="block text-sm font-medium text-gray-700">Custom Advice Request:</label>
+                <textarea id="customPrompt" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2"
+                    placeholder="E.g., 'Focus on strategies for improving math grades and managing stress.'"></textarea>
+            </div>
+
             <div class="flex flex-col space-y-2">
                 <button id="generateAdviceBtn" class="w-full px-4 py-3 rounded-md font-semibold text-white bg-indigo-600 hover:bg-indigo-700 text-lg disabled:opacity-50" disabled>
                     Generate Mentoring Advice
@@ -138,7 +145,7 @@
                                         <option value="T">Together</option>
                                         <option value="A">Apart</option>
                                     </select>
-                                </div>
+                                 </div>
                                  <div>
                                     <label class="block text-sm font-medium text-gray-700">Family Relationship: <span id="famrelValue">4</span></label>
                                     <input type="range" id="famrel" min="1" max="5" value="4" class="mt-1 block w-full">
@@ -251,7 +258,7 @@
                                         <option value="yes">Yes</option>
                                         <option value="no">No</option>
                                     </select>
-                                </div>
+                                 </div>
                                  <div>
                                     <label class="block text-sm font-medium text-gray-700">Attended Nursery</label>
                                     <select id="nursery" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
@@ -355,6 +362,7 @@
                         <div id="explanationChartContainer" class="mt-4">
                             <canvas id="explanationChart"></canvas>
                         </div>
+                        <div id="shapSummary" class="mt-4 text-sm text-gray-700"></div>
                     </div>
                 </div>
             </section>

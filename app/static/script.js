@@ -36,6 +36,8 @@ function runApp(db, auth) {
     const copyAdviceBtn = document.getElementById('copyAdviceBtn');
     const clearFormBtn = document.getElementById('clearFormBtn');
     const loadingSpinner = document.getElementById('loadingSpinner');
+    const shapSummaryDiv = document.getElementById('shapSummary');
+    const customPromptInput = document.getElementById('customPrompt');
 
     let currentUser = null;
     let explanationChart = null; 
@@ -103,6 +105,12 @@ function runApp(db, auth) {
         document.querySelectorAll('#inputForm select, #inputForm input').forEach(el => {
             formData[el.id] = (el.type === 'range') ? parseInt(el.value) : el.value;
         });
+        
+        // Add custom prompt to form data
+        if (customPromptInput) {
+            formData['custom_prompt'] = customPromptInput.value.trim();
+        }
+        
         return formData;
     };
 
@@ -189,6 +197,9 @@ function runApp(db, auth) {
                 }
             }
         });
+        if (customPromptInput) {
+            customPromptInput.value = '';
+        }
     });
     
     // --- Wizard Logic ---
@@ -285,6 +296,33 @@ function runApp(db, auth) {
             }
         });
     };
+    
+    // --- NEW: Function to render a dynamic SHAP summary
+    const renderShapSummary = (explanation) => {
+      if (!shapSummaryDiv) return;
+      
+      if (!explanation || explanation.length === 0) {
+        shapSummaryDiv.textContent = 'No key factors found for this prediction.';
+        return;
+      }
+      
+      const posFactors = explanation.filter(item => item[1] > 0);
+      const negFactors = explanation.filter(item => item[1] < 0);
+      
+      let summaryText = 'This prediction was primarily influenced by:';
+      
+      if (posFactors.length > 0) {
+        const topPos = posFactors[0];
+        summaryText += ` ${getFeatureDescription(topPos[0])} which contributed to a higher risk level.`;
+      }
+      
+      if (negFactors.length > 0) {
+        const topNeg = negFactors[0];
+        summaryText += ` Factors such as ${getFeatureDescription(topNeg[0])} helped to lower the risk.`;
+      }
+      
+      shapSummaryDiv.textContent = summaryText;
+    };
 
     // --- Function to render advice with interactive checklist ---
     const renderAdvice = (adviceText) => {
@@ -345,6 +383,8 @@ function runApp(db, auth) {
         document.getElementById('riskLevel').textContent = 'Calculating...';
         const chartContainer = document.getElementById('explanationChartContainer');
         chartContainer.innerHTML = '<canvas id="explanationChart"></canvas>';
+        if (shapSummaryDiv) shapSummaryDiv.textContent = '';
+
 
         try {
             const [riskResponse, adviceResponse, explanationResponse] = await Promise.all([
@@ -371,6 +411,7 @@ function runApp(db, auth) {
             const explanationResult = await explanationResponse.json();
             if (explanationResult.explanation) {
                 renderExplanationChart(explanationResult.explanation);
+                renderShapSummary(explanationResult.explanation);
             }
 
         } catch (error) {

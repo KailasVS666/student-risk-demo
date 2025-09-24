@@ -60,18 +60,24 @@ def explain_prediction():
 def generate_advice_endpoint():
     gemini_api_key = current_app.config['GEMINI_API_KEY']
     data = request.json.get('student_data')
+    custom_prompt = data.pop('custom_prompt', '') # Retrieve and remove the custom prompt
     if not data:
         return jsonify({"error": "No student data provided"}), 400
 
     prompt = f"""
     Role: You are an expert, empathetic, and motivational student mentor.
     Data: {json.dumps(data)}
+    
     Task: Generate personalized mentoring advice. Structure your response in Markdown using the following strict format:
     ### 1. Overall Assessment
     ### 2. Key Areas for Focus
     ### 3. Actionable Steps & Strategies
     ### 4. Recommended Resources
     """
+    
+    # Append the custom prompt if it exists
+    if custom_prompt:
+        prompt += f"""\n\nAdditional Guidance: The user has a specific request for this advice. Address the following: "{custom_prompt}" """
     
     headers = { 'Content-Type': 'application/json' }
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={gemini_api_key}"
