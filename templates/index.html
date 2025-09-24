@@ -31,19 +31,43 @@
 </head>
 <body class="bg-gray-100">
 
-<div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8">
+<div id="auth-container" class="container mx-auto p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-screen">
+    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
+        <h2 class="text-3xl font-bold text-center text-gray-800">Welcome!</h2>
+        <div id="auth-error" class="text-red-500 text-center text-sm"></div>
+        <div class="space-y-4">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                <input type="email" id="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" required>
+            </div>
+        </div>
+        <div class="flex space-x-4">
+            <button id="loginBtn" class="w-full px-4 py-2 rounded-md font-semibold btn-primary">Login</button>
+            <button id="signupBtn" class="w-full px-4 py-2 rounded-md font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">Sign Up</button>
+        </div>
+    </div>
+</div>
 
-    <header class="text-center mb-10">
+
+<div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 hidden">
+    <header class="text-center mb-10 relative">
         <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800">
             <span class="text-indigo-600">AI</span> Student Mentor
         </h1>
         <p class="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
             A tool for risk assessment, personalized mentoring, and data analysis.
         </p>
+        <div class="absolute top-0 right-0">
+            <span id="user-email" class="text-sm text-gray-600 mr-4"></span>
+            <button id="logoutBtn" class="px-4 py-2 text-sm rounded-md font-semibold bg-red-500 text-white hover:bg-red-600">Logout</button>
+        </div>
     </header>
 
     <main class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-
         <aside class="lg:col-span-1 p-6 bg-white rounded-xl shadow-lg border border-gray-200 h-full">
             <h2 class="text-2xl font-bold mb-4 text-gray-800">Profile Management</h2>
             <div class="mb-4">
@@ -72,11 +96,9 @@
         </aside>
 
         <div class="lg:col-span-3">
-
             <section id="inputForm" class="p-6 bg-white rounded-xl shadow-lg border border-gray-200">
                 <h2 class="text-2xl font-bold mb-4 text-gray-800 section-header">Student Profile</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
-
                     <div>
                         <h3 class="text-lg font-bold mb-2">School & Family</h3>
                         <div class="space-y-4">
@@ -265,17 +287,14 @@
                 <div id="adviceOutput" class="mt-6 prose prose-indigo max-w-none">
                     </div>
             </section>
-
         </div>
     </main>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script>
-    // These global variables are provided by the immersive environment.
-    const __app_id = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
-    
     async function initializeFirebase() {
         try {
             const response = await fetch('/firebase-config');
@@ -283,13 +302,11 @@
                 throw new Error('Could not fetch Firebase config from server.');
             }
             const firebaseConfig = await response.json();
-
-            // Initialize Firebase with the fetched config
             const firebaseApp = firebase.initializeApp(firebaseConfig);
             const db = firebase.firestore();
+            const auth = firebase.auth();
             
-            // Now that Firebase is initialized, run the main app logic
-            runApp(db);
+            runApp(db, auth);
 
         } catch (error) {
             console.error("Firebase initialization failed:", error);
@@ -297,8 +314,18 @@
         }
     }
 
-    // Wrap your main logic in a function that receives the 'db' instance
-    function runApp(db) {
+    function runApp(db, auth) {
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app');
+        const authError = document.getElementById('auth-error');
+
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginBtn = document.getElementById('loginBtn');
+        const signupBtn = document.getElementById('signupBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userEmailSpan = document.getElementById('user-email');
+
         const inputForm = document.getElementById('inputForm');
         const resultsSection = document.getElementById('resultsSection');
         const generateAdviceBtn = document.getElementById('generateAdviceBtn');
@@ -306,7 +333,49 @@
         const loadProfileBtn = document.getElementById('loadProfileBtn');
         const loadProfileSelect = document.getElementById('loadProfileSelect');
 
-        // Dynamically update range slider labels
+        let currentUser = null;
+
+        // --- Authentication Logic ---
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User is signed in
+                currentUser = user;
+                authContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                userEmailSpan.textContent = user.email;
+                fetchProfiles(); // Load profiles for the logged-in user
+            } else {
+                // User is signed out
+                currentUser = null;
+                authContainer.classList.remove('hidden');
+                appContainer.classList.add('hidden');
+                loadProfileSelect.innerHTML = '<option value="">- Select a profile -</option>';
+            }
+        });
+
+        signupBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            auth.createUserWithEmailAndPassword(email, password)
+                .catch(error => {
+                    authError.textContent = error.message;
+                });
+        });
+
+        loginBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            auth.signInWithEmailAndPassword(email, password)
+                .catch(error => {
+                    authError.textContent = error.message;
+                });
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // --- Application Logic ---
         ['age', 'Medu', 'Fedu', 'absences', 'failures', 'G1', 'G2', 'G3'].forEach(id => {
             const slider = document.getElementById(id);
             const label = document.getElementById(id + 'Value');
@@ -320,11 +389,7 @@
         const getFormData = () => {
             const formData = {};
             document.querySelectorAll('#inputForm select, #inputForm input').forEach(el => {
-                if (el.type === 'range') {
-                    formData[el.id] = parseInt(el.value);
-                } else if (el.tagName === 'SELECT') {
-                    formData[el.id] = el.value;
-                }
+                formData[el.id] = (el.type === 'range') ? parseInt(el.value) : el.value;
             });
             return formData;
         };
@@ -335,15 +400,17 @@
                 if (el) {
                     el.value = data[key];
                     if (el.type === 'range') {
-                        document.getElementById(key + 'Value').textContent = data[key];
+                        const label = document.getElementById(key + 'Value');
+                        if (label) label.textContent = data[key];
                     }
                 }
             }
         };
 
         const fetchProfiles = async () => {
+            if (!currentUser) return;
             loadProfileSelect.innerHTML = '<option value="">- Select a profile -</option>';
-            const profilesRef = db.collection('artifacts').doc(__app_id).collection('public').doc('data').collection('student_profiles');
+            const profilesRef = db.collection('users').doc(currentUser.uid).collection('student_profiles');
             try {
                 const snapshot = await profilesRef.get();
                 snapshot.forEach(doc => {
@@ -356,20 +423,16 @@
                 console.error("Error fetching profiles:", error);
             }
         };
-        fetchProfiles();
 
         saveProfileBtn.addEventListener('click', async () => {
+            if (!currentUser) return alert('You must be logged in to save a profile.');
             const filename = document.getElementById('profileName').value.trim();
-            if (!filename) {
-                alert('Please enter a filename.');
-                return;
-            }
+            if (!filename) return alert('Please enter a filename.');
+            
             const data = getFormData();
-            const profilesRef = db.collection('artifacts').doc(__app_id).collection('public').doc('data').collection('student_profiles');
+            const profilesRef = db.collection('users').doc(currentUser.uid).collection('student_profiles');
             try {
-                await profilesRef.doc(filename).set({
-                    data: data
-                });
+                await profilesRef.doc(filename).set({ data: data });
                 alert('Profile saved successfully!');
                 fetchProfiles();
             } catch (error) {
@@ -379,14 +442,13 @@
         });
 
         loadProfileBtn.addEventListener('click', async () => {
+            if (!currentUser) return alert('You must be logged in to load a profile.');
             const filename = loadProfileSelect.value;
-            if (!filename) {
-                alert('Please select a profile to load.');
-                return;
-            }
-            const profilesRef = db.collection('artifacts').doc(__app_id).collection('public').doc('data').collection('student_profiles').doc(filename);
+            if (!filename) return alert('Please select a profile to load.');
+            
+            const profileDocRef = db.collection('users').doc(currentUser.uid).collection('student_profiles').doc(filename);
             try {
-                const doc = await profilesRef.get();
+                const doc = await profileDocRef.get();
                 if (doc.exists) {
                     loadFormData(doc.data().data);
                     alert('Profile loaded successfully!');
@@ -407,9 +469,7 @@
             try {
                 const response = await fetch('/generate-advice', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ student_data: inputData })
                 });
 
@@ -420,18 +480,13 @@
                 const result = await response.json();
                 
                 let riskLevel = 'Medium';
-                if (inputData.G3 >= 15) {
-                    riskLevel = 'Low';
-                } else if (inputData.G3 < 10) {
-                    riskLevel = 'High';
-                }
+                if (inputData.G3 >= 15) riskLevel = 'Low';
+                else if (inputData.G3 < 10) riskLevel = 'High';
 
                 document.getElementById('riskLevel').textContent = riskLevel;
                 document.getElementById('riskLevel').className = `font-bold ${riskLevel === 'High' ? 'text-red-500' : riskLevel === 'Medium' ? 'text-orange-500' : 'text-green-500'}`;
                 
-                let htmlAdvice = result.advice.replace(/### (.*)/g, '<h3>$1</h3>');
-                htmlAdvice = htmlAdvice.replace(/\n/g, '<br>');
-
+                let htmlAdvice = result.advice.replace(/### (.*)/g, '<h3>$1</h3>').replace(/\n/g, '<br>');
                 document.getElementById('adviceOutput').innerHTML = htmlAdvice;
 
             } catch (error) {
@@ -441,7 +496,6 @@
         });
     }
 
-    // Start the process when the DOM is ready
     document.addEventListener('DOMContentLoaded', initializeFirebase);
 </script>
 
