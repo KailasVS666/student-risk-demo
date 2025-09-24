@@ -6,6 +6,7 @@
     <title>AI Student Mentor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100">
 
@@ -282,15 +283,27 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
             </section>
 
             <section id="resultsSection" class="mt-8 p-6 bg-white rounded-xl shadow-lg border border-gray-200 hidden">
                 <h2 class="text-2xl font-bold mb-4 text-gray-800 section-header">Mentoring Analysis</h2>
-                <div class="mb-4">
-                    <p class="text-lg font-semibold text-gray-700">Predicted Risk Level: <span id="riskLevel" class="font-bold text-red-500"></span></p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <div class="mb-4">
+                            <p class="text-lg font-semibold text-gray-700">Predicted Risk Level: <span id="riskLevel" class="font-bold"></span></p>
+                        </div>
+                        <div id="adviceOutput" class="mt-6 prose prose-indigo max-w-none"></div>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700">Key Factors Influencing Prediction</h3>
+                        <p class="text-sm text-gray-500 mb-2">This chart shows which factors had the biggest impact on the risk prediction. Red bars indicate factors that increased the risk, while blue bars indicate factors that decreased it.</p>
+                        <div id="explanationChartContainer" class="mt-4">
+                            <canvas id="explanationChart"></canvas>
+                        </div>
+                    </div>
                 </div>
-                <div id="adviceOutput" class="mt-6 prose prose-indigo max-w-none"></div>
             </section>
         </div>
     </main>

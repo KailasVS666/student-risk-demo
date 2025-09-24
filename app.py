@@ -6,6 +6,7 @@ import requests
 import json
 import joblib
 import pandas as pd
+import shap # Import the SHAP library
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -13,12 +14,10 @@ app = Flask(__name__)
 CORS(app)
 
 # --- ML Model Loading ---
-# Load the trained machine learning model pipeline
-# CHANGE: Load the full pipeline which includes the preprocessor
-model = joblib.load('early_warning_model_pipeline.joblib')
-
-# REMOVED: The hardcoded model_columns list is no longer needed
-# because the pipeline handles the feature transformation.
+# Load the full pipeline which includes the preprocessor
+model_pipeline = joblib.load('early_warning_model_pipeline.joblib')
+# Load the core classifier model for SHAP explanations
+core_model = joblib.load('student_risk_classifier.joblib')
 
 # Load the Gemini API Key from the environment variables
 GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -46,26 +45,57 @@ def firebase_config():
 def predict_risk():
     try:
         data = request.json.get('student_data')
-        
-        # Convert the incoming data into a pandas DataFrame
         input_df = pd.DataFrame([data])
-        
-        # REMOVED: The manual preprocessing (get_dummies and reindex)
-        # is no longer needed. The pipeline will do it.
-
-        # Make prediction using the full pipeline
-        prediction = model.predict(input_df)
-        
-        # The model will output 'High', 'Medium', or 'Low'. 
-        # You can adjust this logic based on your needs.
+        prediction = model_pipeline.predict(input_df)
         risk_label = prediction[0]
-        
         return jsonify({'risk_level': risk_label})
-
     except Exception as e:
         print(f"Prediction error: {e}")
         return jsonify({"error": "Failed to make a prediction."}), 500
 
+# --- NEW ENDPOINT FOR SHAP EXPLANATIONS ---
+@app.route('/explain-prediction', methods=['POST'])
+def explain_prediction():
+    try:
+        data = request.json.get('student_data')
+        input_df = pd.DataFrame([data])
+
+        # Get the preprocessor from the pipeline
+        preprocessor = model_pipeline.named_steps['preprocessor']
+        
+        # Transform the input data using the preprocessor
+        processed_df = preprocessor.transform(input_df)
+        
+        # We need the feature names after one-hot encoding
+        feature_names = preprocessor.get_feature_names_out()
+        processed_df = pd.DataFrame(processed_df, columns=feature_names)
+
+        # Create a SHAP explainer and get shap values
+        explainer = shap.TreeExplainer(core_model)
+        shap_values = explainer.shap_values(processed_df)
+
+        # We'll focus on the explanation for the "High" risk class (index 1)
+        # Note: The index might change if your model's classes_ attribute is different
+        # Check `core_model.classes_` to be sure. Assumes ['High', 'Low', 'Medium'] or similar.
+        class_index = list(core_model.classes_).index('High') # Find index for 'High' risk
+        
+        # Get the SHAP values for the specific prediction
+        instance_shap = shap_values[class_index][0]
+
+        # Create a list of feature names and their SHAP values
+        feature_importance = sorted(
+            zip(feature_names, instance_shap),
+            key=lambda x: abs(x[1]),
+            reverse=True
+        )
+
+        # Return the top 10 most influential features
+        return jsonify({"explanation": feature_importance[:10]})
+
+    except Exception as e:
+        print(f"SHAP explanation error: {e}")
+        return jsonify({"error": "Failed to generate explanation."}), 500
+# ---------------------------------------------
 
 @app.route('/generate-advice', methods=['POST'])
 def generate_advice_endpoint():

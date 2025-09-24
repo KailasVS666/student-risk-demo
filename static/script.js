@@ -37,6 +37,7 @@ function runApp(db, auth) {
     const loadProfileSelect = document.getElementById('loadProfileSelect');
 
     let currentUser = null;
+    let explanationChart = null; // Variable to hold the chart instance
 
     // --- Authentication Logic ---
     auth.onAuthStateChanged(user => {
@@ -163,43 +164,107 @@ function runApp(db, auth) {
         }
     });
 
+    // --- NEW: Function to render the SHAP explanation chart ---
+    const renderExplanationChart = (explanation) => {
+        const ctx = document.getElementById('explanationChart').getContext('2d');
+        
+        // Destroy the old chart instance if it exists
+        if (explanationChart) {
+            explanationChart.destroy();
+        }
+
+        const labels = explanation.map(item => item[0].replace('num__', '').replace('cat__', '')); // Clean up labels
+        const dataValues = explanation.map(item => item[1]);
+        
+        // Assign colors based on positive (risk-increasing) or negative (risk-decreasing) SHAP value
+        const backgroundColors = dataValues.map(value => value > 0 ? 'rgba(239, 68, 68, 0.7)' : 'rgba(59, 130, 246, 0.7)');
+
+        explanationChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Impact on Prediction',
+                    data: dataValues,
+                    backgroundColor: backgroundColors,
+                    borderColor: backgroundColors.map(color => color.replace('0.7', '1')),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y', // This makes the bar chart horizontal
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'SHAP Value (Impact on High Risk Prediction)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false // We don't need a legend for a single dataset
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    };
+
     generateAdviceBtn.addEventListener('click', async () => {
         const inputData = getFormData();
         resultsSection.classList.remove('hidden');
         document.getElementById('adviceOutput').innerHTML = '<p class="text-center text-gray-500">Generating advice...</p>';
         document.getElementById('riskLevel').textContent = 'Calculating...';
 
-        try {
-            const riskResponse = await fetch('/predict-risk', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ student_data: inputData })
-            });
+        // Clear previous chart
+        const chartContainer = document.getElementById('explanationChartContainer');
+        chartContainer.innerHTML = '<canvas id="explanationChart"></canvas>';
 
-            if (!riskResponse.ok) {
-                throw new Error(`Risk prediction failed with status: ${riskResponse.status}`);
-            }
-            
+
+        try {
+            // --- Call both APIs concurrently for a faster experience ---
+            const [riskResponse, adviceResponse, explanationResponse] = await Promise.all([
+                fetch('/predict-risk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_data: inputData })
+                }),
+                fetch('/generate-advice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_data: inputData })
+                }),
+                // --- NEW: Fetch explanation data ---
+                fetch('/explain-prediction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ student_data: inputData })
+                })
+            ]);
+
+            // --- Process Risk Prediction ---
+            if (!riskResponse.ok) throw new Error(`Risk prediction failed with status: ${riskResponse.status}`);
             const riskResult = await riskResponse.json();
             const riskLevel = riskResult.risk_level;
-
             document.getElementById('riskLevel').textContent = riskLevel;
-            document.getElementById('riskLevel').className = `font-bold ${riskLevel === 'High' ? 'text-red-500' : 'text-green-500'}`;
-            
-            const adviceResponse = await fetch('/generate-advice', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ student_data: inputData })
-            });
+            const riskColor = riskLevel === 'High' ? 'text-red-500' : (riskLevel === 'Medium' ? 'text-yellow-500' : 'text-green-500');
+            document.getElementById('riskLevel').className = `font-bold ${riskColor}`;
 
-            if (!adviceResponse.ok) {
-                throw new Error(`Server call failed with status: ${adviceResponse.status}`);
-            }
-
-            const result = await adviceResponse.json();
-            
-            let htmlAdvice = result.advice.replace(/### (.*)/g, '<h3>$1</h3>').replace(/\n/g, '<br>');
+            // --- Process Advice Generation ---
+            if (!adviceResponse.ok) throw new Error(`Advice generation failed with status: ${adviceResponse.status}`);
+            const adviceResult = await adviceResponse.json();
+            let htmlAdvice = adviceResult.advice.replace(/### (.*)/g, '<h3>$1</h3>').replace(/\n/g, '<br>');
             document.getElementById('adviceOutput').innerHTML = htmlAdvice;
+
+            // --- Process and Render Explanation Chart ---
+            if (!explanationResponse.ok) throw new Error(`Explanation failed with status: ${explanationResponse.status}`);
+            const explanationResult = await explanationResponse.json();
+            if (explanationResult.explanation) {
+                renderExplanationChart(explanationResult.explanation);
+            }
 
         } catch (error) {
             console.error("Error during generation process:", error);
