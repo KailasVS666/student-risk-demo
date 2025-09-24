@@ -41,6 +41,7 @@ function runApp(db, auth) {
 
     let currentUser = null;
     let explanationChart = null; 
+    let gradesChart = null;
     
     // --- Wizard elements and state ---
     let currentStep = 0;
@@ -324,6 +325,41 @@ function runApp(db, auth) {
       shapSummaryDiv.textContent = summaryText;
     };
 
+    // --- NEW: Function to render grades comparison chart
+    const renderGradesChart = (studentData, averages) => {
+      const ctx = document.getElementById('gradesChart').getContext('2d');
+      if (gradesChart) {
+          gradesChart.destroy();
+      }
+      gradesChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+              labels: ['First Period Grade (G1)', 'Second Period Grade (G2)'],
+              datasets: [{
+                  label: 'Your Grades',
+                  data: [studentData.G1, studentData.G2],
+                  backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                  borderColor: 'rgba(59, 130, 246, 1)',
+                  borderWidth: 1
+              }, {
+                  label: 'Dataset Average',
+                  data: [averages.G1, averages.G2],
+                  backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                  borderColor: 'rgba(239, 68, 68, 1)',
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              scales: {
+                  y: {
+                      beginAtZero: true,
+                      max: 20
+                  }
+              }
+          }
+      });
+    };
+
     // --- Function to render advice with interactive checklist ---
     const renderAdvice = (adviceText) => {
         const adviceOutput = document.getElementById('adviceOutput');
@@ -383,14 +419,17 @@ function runApp(db, auth) {
         document.getElementById('riskLevel').textContent = 'Calculating...';
         const chartContainer = document.getElementById('explanationChartContainer');
         chartContainer.innerHTML = '<canvas id="explanationChart"></canvas>';
+        const gradesChartContainer = document.getElementById('gradesChartContainer');
+        gradesChartContainer.innerHTML = '<canvas id="gradesChart"></canvas>';
         if (shapSummaryDiv) shapSummaryDiv.textContent = '';
 
 
         try {
-            const [riskResponse, adviceResponse, explanationResponse] = await Promise.all([
+            const [riskResponse, adviceResponse, explanationResponse, gradesResponse] = await Promise.all([
                 fetch('/predict-risk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_data: inputData }) }),
                 fetch('/generate-advice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_data: inputData }) }),
-                fetch('/explain-prediction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_data: inputData }) })
+                fetch('/explain-prediction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ student_data: inputData }) }),
+                fetch('/get-grade-averages')
             ]);
 
             // Process Risk
@@ -406,13 +445,18 @@ function runApp(db, auth) {
             const adviceResult = await adviceResponse.json();
             renderAdvice(adviceResult.advice);
 
-            // Process and Render Chart
+            // Process and Render Charts
             if (!explanationResponse.ok) throw new Error(`Explanation failed with status: ${explanationResponse.status}`);
             const explanationResult = await explanationResponse.json();
             if (explanationResult.explanation) {
                 renderExplanationChart(explanationResult.explanation);
                 renderShapSummary(explanationResult.explanation);
             }
+            
+            if (!gradesResponse.ok) throw new Error(`Grades averages failed with status: ${gradesResponse.status}`);
+            const gradesAverages = await gradesResponse.json();
+            renderGradesChart(inputData, gradesAverages);
+
 
         } catch (error) {
             console.error("Error during generation process:", error);

@@ -60,7 +60,7 @@ def explain_prediction():
 def generate_advice_endpoint():
     gemini_api_key = current_app.config['GEMINI_API_KEY']
     data = request.json.get('student_data')
-    custom_prompt = data.pop('custom_prompt', '') # Retrieve and remove the custom prompt
+    custom_prompt = data.pop('custom_prompt', '')
     if not data:
         return jsonify({"error": "No student data provided"}), 400
 
@@ -75,7 +75,6 @@ def generate_advice_endpoint():
     ### 4. Recommended Resources
     """
     
-    # Append the custom prompt if it exists
     if custom_prompt:
         prompt += f"""\n\nAdditional Guidance: The user has a specific request for this advice. Address the following: "{custom_prompt}" """
     
@@ -96,3 +95,13 @@ def generate_advice_endpoint():
     except Exception as e:
         print(f"API call failed: {e}")
         return jsonify({"error": "Failed to connect to the AI service."}), 500
+
+@main_bp.route('/get-grade-averages', methods=['GET'])
+def get_grade_averages():
+    try:
+        df = pd.read_csv('student-por.csv', sep=';')
+        grades_avg = df[['G1', 'G2']].mean().to_dict()
+        return jsonify(grades_avg)
+    except Exception as e:
+        print(f"Error fetching grade averages: {e}")
+        return jsonify({"error": "Failed to get grades from the dataset."}), 500
