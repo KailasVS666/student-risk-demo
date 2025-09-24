@@ -33,7 +33,9 @@ function runApp(db, auth) {
     const saveProfileBtn = document.getElementById('saveProfileBtn');
     const loadProfileBtn = document.getElementById('loadProfileBtn');
     const loadProfileSelect = document.getElementById('loadProfileSelect');
-    const copyAdviceBtn = document.getElementById('copyAdviceBtn'); // New button
+    const copyAdviceBtn = document.getElementById('copyAdviceBtn');
+    const clearFormBtn = document.getElementById('clearFormBtn');
+    const loadingSpinner = document.getElementById('loadingSpinner');
 
     let currentUser = null;
     let explanationChart = null; 
@@ -46,7 +48,7 @@ function runApp(db, auth) {
     const progressSteps = document.querySelectorAll('.progress-step');
     const progressLines = document.querySelectorAll('.progress-line');
 
-    // --- Authentication Logic (unchanged) ---
+    // --- Authentication Logic ---
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
@@ -80,7 +82,7 @@ function runApp(db, auth) {
         auth.signOut();
     });
 
-    // --- Application Logic (sliders, forms - unchanged) ---
+    // --- Application Logic ---
     const sliderIds = [
         'age', 'Medu', 'Fedu', 'traveltime', 'studytime', 'failures', 
         'famrel', 'freetime', 'goout', 'Dalc', 'Walc', 'health', 'absences', 'G1', 'G2'
@@ -170,8 +172,26 @@ function runApp(db, auth) {
             alert('Failed to load profile.');
         }
     });
+
+    clearFormBtn.addEventListener('click', () => {
+        const form = document.getElementById('inputForm');
+        const inputs = form.querySelectorAll('input, select');
+        
+        inputs.forEach(input => {
+            const defaultValue = input.getAttribute('value') || input.querySelector('option').value;
+            input.value = defaultValue;
+            
+            // Update the display for range sliders
+            if (input.type === 'range') {
+                const label = document.getElementById(input.id + 'Value');
+                if (label) {
+                    label.textContent = defaultValue;
+                }
+            }
+        });
+    });
     
-    // --- Wizard Logic (unchanged) ---
+    // --- Wizard Logic ---
     const updateWizardUI = () => {
         formSteps.forEach((step, index) => step.classList.toggle('active-step', index === currentStep));
         progressSteps.forEach((step, index) => step.classList.toggle('active', index < currentStep + 1));
@@ -249,7 +269,6 @@ function runApp(db, auth) {
                 },
                 plugins: { 
                     legend: { display: false },
-                    // --- NEW: Custom Tooltip Logic ---
                     tooltip: {
                         callbacks: {
                             label: function(context) {
@@ -267,7 +286,7 @@ function runApp(db, auth) {
         });
     };
 
-    // --- NEW: Function to render advice with interactive checklist ---
+    // --- Function to render advice with interactive checklist ---
     const renderAdvice = (adviceText) => {
         const adviceOutput = document.getElementById('adviceOutput');
         let html = '';
@@ -299,19 +318,30 @@ function runApp(db, auth) {
                 });
                 html += '</ul>';
             } else {
-                html += `<p>${content.replace(/\* /g, '<br>&bull; ')}</p>`; // Standard bullet points for other sections
+                html += `<p>${content.replace(/\* /g, '<br>&bull; ')}</p>`;
             }
         });
         
-        adviceOutput.innerHTML = html;
+        // This is the correct way to add the adviceContent div
+        const contentDiv = document.createElement('div');
+        contentDiv.id = 'adviceContent';
+        contentDiv.innerHTML = html;
+        
+        adviceOutput.innerHTML = '';
+        adviceOutput.appendChild(contentDiv);
     };
 
-
-    // --- Generate Advice Event Listener (UPDATED to use new render function) ---
+    // --- Generate Advice Event Listener ---
     generateAdviceBtn.addEventListener('click', async () => {
         const inputData = getFormData();
+        
+        // Show loading state and disable button
         resultsSection.classList.remove('hidden');
-        document.getElementById('adviceOutput').innerHTML = '<p class="text-center text-gray-500">Generating advice...</p>';
+        loadingSpinner.classList.remove('hidden');
+        generateAdviceBtn.disabled = true;
+        
+        // Clear previous content
+        document.getElementById('adviceOutput').innerHTML = '';
         document.getElementById('riskLevel').textContent = 'Calculating...';
         const chartContainer = document.getElementById('explanationChartContainer');
         chartContainer.innerHTML = '<canvas id="explanationChart"></canvas>';
@@ -334,7 +364,7 @@ function runApp(db, auth) {
             // Process and Render Advice
             if (!adviceResponse.ok) throw new Error(`Advice generation failed with status: ${adviceResponse.status}`);
             const adviceResult = await adviceResponse.json();
-            renderAdvice(adviceResult.advice); // Use the new render function
+            renderAdvice(adviceResult.advice);
 
             // Process and Render Chart
             if (!explanationResponse.ok) throw new Error(`Explanation failed with status: ${explanationResponse.status}`);
@@ -346,21 +376,27 @@ function runApp(db, auth) {
         } catch (error) {
             console.error("Error during generation process:", error);
             document.getElementById('adviceOutput').innerHTML = `<p class="text-red-500">Failed to generate advice: ${error.message}</p>`;
+        } finally {
+            // Hide loading state and re-enable button
+            loadingSpinner.classList.add('hidden');
+            generateAdviceBtn.disabled = false;
         }
     });
 
-    // --- NEW: Copy to Clipboard Logic ---
+    // --- Copy to Clipboard Logic ---
     copyAdviceBtn.addEventListener('click', () => {
-        const adviceContent = document.getElementById('adviceContent').innerText;
-        navigator.clipboard.writeText(adviceContent).then(() => {
-            const originalText = copyAdviceBtn.innerHTML;
-            copyAdviceBtn.textContent = 'Copied!';
-            setTimeout(() => {
-                copyAdviceBtn.innerHTML = originalText;
-            }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
-        });
+        const adviceContent = document.getElementById('adviceContent');
+        if (adviceContent) {
+            navigator.clipboard.writeText(adviceContent.innerText).then(() => {
+                const originalText = copyAdviceBtn.innerHTML;
+                copyAdviceBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyAdviceBtn.innerHTML = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
     });
 
     // --- Initialize the wizard ---
