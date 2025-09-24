@@ -30,9 +30,15 @@ def get_risk_level(grade):
 
 combined_df['risk_level'] = combined_df['G3'].apply(get_risk_level)
 
-# Identify features and target
-features = combined_df.drop('risk_level', axis=1)
+# --------------------
+# *** IMPORTANT CHANGE HERE ***
+# --------------------
+# Identify features and target.
+# We must drop 'G3' as it's the basis for the target variable 'risk_level'.
+# Keeping it would be leaking information to the model.
+features = combined_df.drop(['risk_level', 'G3'], axis=1)
 target = combined_df['risk_level']
+
 
 # Split data into training and testing sets for evaluation
 X_train, X_test, y_train, y_test = train_test_split(

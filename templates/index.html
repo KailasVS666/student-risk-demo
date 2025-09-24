@@ -5,29 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Student Mentor</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-        .container {
-            max-width: 1200px;
-            margin: auto;
-            padding: 2rem;
-        }
-        .section-header {
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .btn-primary {
-            background-color: #4f46e5;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #4338ca;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="bg-gray-100">
 
@@ -52,7 +30,6 @@
     </div>
 </div>
 
-
 <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 hidden">
     <header class="text-center mb-10 relative">
         <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800">
@@ -73,17 +50,17 @@
             <div class="mb-4">
                 <label for="profileName" class="block text-sm font-medium text-gray-700">Save Profile As:</label>
                 <input type="text" id="profileName" value="new_student"
-                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
                 <button id="saveProfileBtn" class="mt-2 w-full px-4 py-2 rounded-md font-semibold btn-primary">
                     Save Profile
                 </button>
             </div>
             <div class="mb-4">
                 <label for="loadProfileSelect" class="block text-sm font-medium text-gray-700">Load Existing Profile:</label>
-                <select id="loadProfileSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <select id="loadProfileSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
                     <option value="">- Select a profile -</option>
                 </select>
-                <button id="loadProfileBtn" class="mt-2 w-full px-4 py-2 rounded-md font-semibold bg-gray-200 text-gray-700 hover:bg-gray-300">
+                <button id="loadProfileBtn" class="mt-2 w-full px-4 py-2 rounded-md font-semibold bg-gray-200 hover:bg-gray-300">
                     Load Profile
                 </button>
             </div>
@@ -98,9 +75,10 @@
         <div class="lg:col-span-3">
             <section id="inputForm" class="p-6 bg-white rounded-xl shadow-lg border border-gray-200">
                 <h2 class="text-2xl font-bold mb-4 text-gray-800 section-header">Student Profile</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    
                     <div>
-                        <h3 class="text-lg font-bold mb-2">School & Family</h3>
+                        <h3 class="text-lg font-bold mb-2">Demographics & Family</h3>
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">School</label>
@@ -141,7 +119,17 @@
                                     <option value="A">Apart</option>
                                 </select>
                             </div>
-                            <div>
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700">Family Relationship: <span id="famrelValue">4</span></label>
+                                <input type="range" id="famrel" min="1" max="5" value="4" class="mt-1 block w-full">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-bold mb-2">Academics & Support</h3>
+                        <div class="space-y-4">
+                           <div>
                                 <label class="block text-sm font-medium text-gray-700">Mother's Education: <span id="MeduValue">2</span></label>
                                 <input type="range" id="Medu" min="0" max="4" value="2" class="mt-1 block w-full">
                             </div>
@@ -149,12 +137,47 @@
                                 <label class="block text-sm font-medium text-gray-700">Father's Education: <span id="FeduValue">2</span></label>
                                 <input type="range" id="Fedu" min="0" max="4" value="2" class="mt-1 block w-full">
                             </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-lg font-bold mb-2">Activities & Support</h3>
-                        <div class="space-y-4">
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700">Mother's Job</label>
+                                <select id="Mjob" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                    <option value="teacher">Teacher</option>
+                                    <option value="health">Health</option>
+                                    <option value="services">Services</option>
+                                    <option value="at_home">At Home</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Father's Job</label>
+                                <select id="Fjob" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                    <option value="teacher">Teacher</option>
+                                    <option value="health">Health</option>
+                                    <option value="services">Services</option>
+                                    <option value="at_home">At Home</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700">Reason for School</label>
+                                <select id="reason" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                    <option value="home">Close to Home</option>
+                                    <option value="reputation">Reputation</option>
+                                    <option value="course">Course Preference</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700">Guardian</label>
+                                <select id="guardian" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                    <option value="mother">Mother</option>
+                                    <option value="father">Father</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Weekly Study Time: <span id="studytimeValue">2</span></label>
+                                <input type="range" id="studytime" min="1" max="4" value="2" class="mt-1 block w-full">
+                            </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">School Support</label>
                                 <select id="schoolsup" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
@@ -177,22 +200,28 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Extracurricular Activities</label>
+                                <label class="block text-sm font-medium text-gray-700">Wants Higher Ed</label>
+                                <select id="higher" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
+                                    <option value="yes">Yes</option>
+                                    <option value="no">No</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-bold mb-2">Lifestyle & Grades</h3>
+                        <div class="space-y-4">
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700">Activities</label>
                                 <select id="activities" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
                                     <option value="yes">Yes</option>
                                     <option value="no">No</option>
                                 </select>
                             </div>
-                            <div>
+                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Attended Nursery</label>
                                 <select id="nursery" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="yes">Yes</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Wants Higher Ed</label>
-                                <select id="higher" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
                                     <option value="yes">Yes</option>
                                     <option value="no">No</option>
                                 </select>
@@ -211,50 +240,31 @@
                                     <option value="no">No</option>
                                 </select>
                             </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-lg font-bold mb-2">Grades & Habits</h3>
-                        <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Mother's Job</label>
-                                <select id="Mjob" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="at_home">At Home</option>
-                                    <option value="health">Health</option>
-                                    <option value="other">Other</option>
-                                    <option value="services">Services</option>
-                                    <option value="teacher">Teacher</option>
-                                </select>
+                                <label class="block text-sm font-medium text-gray-700">Travel Time: <span id="traveltimeValue">1</span></label>
+                                <input type="range" id="traveltime" min="1" max="4" value="1" class="mt-1 block w-full">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Father's Job</label>
-                                <select id="Fjob" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="at_home">At Home</option>
-                                    <option value="health">Health</option>
-                                    <option value="other">Other</option>
-                                    <option value="services">Services</option>
-                                    <option value="teacher">Teacher</option>
-                                </select>
+                                <label class="block text-sm font-medium text-gray-700">Free Time: <span id="freetimeValue">3</span></label>
+                                <input type="range" id="freetime" min="1" max="5" value="3" class="mt-1 block w-full">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Reason</label>
-                                <select id="reason" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="course">Course</option>
-                                    <option value="other">Other</option>
-                                    <option value="home">Home</option>
-                                    <option value="reputation">Reputation</option>
-                                </select>
+                                <label class="block text-sm font-medium text-gray-700">Going Out: <span id="gooutValue">3</span></label>
+                                <input type="range" id="goout" min="1" max="5" value="3" class="mt-1 block w-full">
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Guardian</label>
-                                <select id="guardian" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                                    <option value="mother">Mother</option>
-                                    <option value="father">Father</option>
-                                    <option value="other">Other</option>
-                                </select>
+                                <label class="block text-sm font-medium text-gray-700">Workday Alcohol: <span id="DalcValue">1</span></label>
+                                <input type="range" id="Dalc" min="1" max="5" value="1" class="mt-1 block w-full">
                             </div>
                             <div>
+                                <label class="block text-sm font-medium text-gray-700">Weekend Alcohol: <span id="WalcValue">1</span></label>
+                                <input type="range" id="Walc" min="1" max="5" value="1" class="mt-1 block w-full">
+                            </div>
+                             <div>
+                                <label class="block text-sm font-medium text-gray-700">Health Status: <span id="healthValue">3</span></label>
+                                <input type="range" id="health" min="1" max="5" value="3" class="mt-1 block w-full">
+                            </div>
+                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Absences: <span id="absencesValue">5</span></label>
                                 <input type="range" id="absences" min="0" max="93" value="5" class="mt-1 block w-full">
                             </div>
@@ -262,17 +272,13 @@
                                 <label class="block text-sm font-medium text-gray-700">Past Failures: <span id="failuresValue">0</span></label>
                                 <input type="range" id="failures" min="0" max="4" value="0" class="mt-1 block w-full">
                             </div>
-                            <div>
+                             <div>
                                 <label class="block text-sm font-medium text-gray-700">First Grade (G1): <span id="G1Value">10</span></label>
                                 <input type="range" id="G1" min="0" max="20" value="10" class="mt-1 block w-full">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Second Grade (G2): <span id="G2Value">10</span></label>
                                 <input type="range" id="G2" min="0" max="20" value="10" class="mt-1 block w-full">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Final Grade (G3): <span id="G3Value">10</span></label>
-                                <input type="range" id="G3" min="0" max="20" value="10" class="mt-1 block w-full">
                             </div>
                         </div>
                     </div>
@@ -284,8 +290,7 @@
                 <div class="mb-4">
                     <p class="text-lg font-semibold text-gray-700">Predicted Risk Level: <span id="riskLevel" class="font-bold text-red-500"></span></p>
                 </div>
-                <div id="adviceOutput" class="mt-6 prose prose-indigo max-w-none">
-                    </div>
+                <div id="adviceOutput" class="mt-6 prose prose-indigo max-w-none"></div>
             </section>
         </div>
     </main>
@@ -294,210 +299,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script>
-    async function initializeFirebase() {
-        try {
-            const response = await fetch('/firebase-config');
-            if (!response.ok) {
-                throw new Error('Could not fetch Firebase config from server.');
-            }
-            const firebaseConfig = await response.json();
-            const firebaseApp = firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
-            const auth = firebase.auth();
-            
-            runApp(db, auth);
-
-        } catch (error) {
-            console.error("Firebase initialization failed:", error);
-            alert("Could not connect to the database. Please check the console for errors.");
-        }
-    }
-
-    function runApp(db, auth) {
-        const authContainer = document.getElementById('auth-container');
-        const appContainer = document.getElementById('app');
-        const authError = document.getElementById('auth-error');
-
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const loginBtn = document.getElementById('loginBtn');
-        const signupBtn = document.getElementById('signupBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const userEmailSpan = document.getElementById('user-email');
-
-        const inputForm = document.getElementById('inputForm');
-        const resultsSection = document.getElementById('resultsSection');
-        const generateAdviceBtn = document.getElementById('generateAdviceBtn');
-        const saveProfileBtn = document.getElementById('saveProfileBtn');
-        const loadProfileBtn = document.getElementById('loadProfileBtn');
-        const loadProfileSelect = document.getElementById('loadProfileSelect');
-
-        let currentUser = null;
-
-        // --- Authentication Logic ---
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                // User is signed in
-                currentUser = user;
-                authContainer.classList.add('hidden');
-                appContainer.classList.remove('hidden');
-                userEmailSpan.textContent = user.email;
-                fetchProfiles(); // Load profiles for the logged-in user
-            } else {
-                // User is signed out
-                currentUser = null;
-                authContainer.classList.remove('hidden');
-                appContainer.classList.add('hidden');
-                loadProfileSelect.innerHTML = '<option value="">- Select a profile -</option>';
-            }
-        });
-
-        signupBtn.addEventListener('click', () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            auth.createUserWithEmailAndPassword(email, password)
-                .catch(error => {
-                    authError.textContent = error.message;
-                });
-        });
-
-        loginBtn.addEventListener('click', () => {
-            const email = emailInput.value;
-            const password = passwordInput.value;
-            auth.signInWithEmailAndPassword(email, password)
-                .catch(error => {
-                    authError.textContent = error.message;
-                });
-        });
-
-        logoutBtn.addEventListener('click', () => {
-            auth.signOut();
-        });
-
-        // --- Application Logic ---
-        ['age', 'Medu', 'Fedu', 'absences', 'failures', 'G1', 'G2', 'G3'].forEach(id => {
-            const slider = document.getElementById(id);
-            const label = document.getElementById(id + 'Value');
-            if (slider && label) {
-                slider.addEventListener('input', () => {
-                    label.textContent = slider.value;
-                });
-            }
-        });
-
-        const getFormData = () => {
-            const formData = {};
-            document.querySelectorAll('#inputForm select, #inputForm input').forEach(el => {
-                formData[el.id] = (el.type === 'range') ? parseInt(el.value) : el.value;
-            });
-            return formData;
-        };
-
-        const loadFormData = (data) => {
-            for (const key in data) {
-                const el = document.getElementById(key);
-                if (el) {
-                    el.value = data[key];
-                    if (el.type === 'range') {
-                        const label = document.getElementById(key + 'Value');
-                        if (label) label.textContent = data[key];
-                    }
-                }
-            }
-        };
-
-        const fetchProfiles = async () => {
-            if (!currentUser) return;
-            loadProfileSelect.innerHTML = '<option value="">- Select a profile -</option>';
-            const profilesRef = db.collection('users').doc(currentUser.uid).collection('student_profiles');
-            try {
-                const snapshot = await profilesRef.get();
-                snapshot.forEach(doc => {
-                    const option = document.createElement('option');
-                    option.value = doc.id;
-                    option.textContent = doc.id;
-                    loadProfileSelect.appendChild(option);
-                });
-            } catch (error) {
-                console.error("Error fetching profiles:", error);
-            }
-        };
-
-        saveProfileBtn.addEventListener('click', async () => {
-            if (!currentUser) return alert('You must be logged in to save a profile.');
-            const filename = document.getElementById('profileName').value.trim();
-            if (!filename) return alert('Please enter a filename.');
-            
-            const data = getFormData();
-            const profilesRef = db.collection('users').doc(currentUser.uid).collection('student_profiles');
-            try {
-                await profilesRef.doc(filename).set({ data: data });
-                alert('Profile saved successfully!');
-                fetchProfiles();
-            } catch (error) {
-                console.error("Error saving profile:", error);
-                alert('Failed to save profile.');
-            }
-        });
-
-        loadProfileBtn.addEventListener('click', async () => {
-            if (!currentUser) return alert('You must be logged in to load a profile.');
-            const filename = loadProfileSelect.value;
-            if (!filename) return alert('Please select a profile to load.');
-            
-            const profileDocRef = db.collection('users').doc(currentUser.uid).collection('student_profiles').doc(filename);
-            try {
-                const doc = await profileDocRef.get();
-                if (doc.exists) {
-                    loadFormData(doc.data().data);
-                    alert('Profile loaded successfully!');
-                } else {
-                    alert('Profile not found.');
-                }
-            } catch (error) {
-                console.error("Error loading profile:", error);
-                alert('Failed to load profile.');
-            }
-        });
-
-        generateAdviceBtn.addEventListener('click', async () => {
-            const inputData = getFormData();
-            resultsSection.classList.remove('hidden');
-            document.getElementById('adviceOutput').innerHTML = '<p class="text-center text-gray-500">Generating advice...</p>';
-
-            try {
-                const response = await fetch('/generate-advice', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ student_data: inputData })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Server call failed with status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                
-                let riskLevel = 'Medium';
-                if (inputData.G3 >= 15) riskLevel = 'Low';
-                else if (inputData.G3 < 10) riskLevel = 'High';
-
-                document.getElementById('riskLevel').textContent = riskLevel;
-                document.getElementById('riskLevel').className = `font-bold ${riskLevel === 'High' ? 'text-red-500' : riskLevel === 'Medium' ? 'text-orange-500' : 'text-green-500'}`;
-                
-                let htmlAdvice = result.advice.replace(/### (.*)/g, '<h3>$1</h3>').replace(/\n/g, '<br>');
-                document.getElementById('adviceOutput').innerHTML = htmlAdvice;
-
-            } catch (error) {
-                console.error("Error generating advice:", error);
-                document.getElementById('adviceOutput').innerHTML = `<p class="text-red-500">Failed to generate advice: ${error.message}</p>`;
-            }
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', initializeFirebase);
-</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
 
 </body>
 </html>
