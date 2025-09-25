@@ -3,6 +3,8 @@ import pandas as pd
 import shap
 import requests
 import json
+import numpy as np
+from scipy.sparse import issparse
 
 # Create a Blueprint object
 main_bp = Blueprint('main', __name__)
@@ -21,11 +23,19 @@ def firebase_config():
 def predict_risk():
     try:
         model_pipeline = current_app.config['MODEL_PIPELINE']
+        label_encoder = current_app.config['LABEL_ENCODER']
+        
         data = request.json.get('student_data')
         input_df = pd.DataFrame([data])
-        prediction = model_pipeline.predict(input_df)
-        risk_label = prediction[0]
-        return jsonify({'risk_level': risk_label})
+        
+        input_df['grade_change'] = input_df['G2'] - input_df['G1']
+        input_df['average_grade'] = (input_df['G1'] + input_df['G2']) / 2
+        
+        prediction_encoded = model_pipeline.predict(input_df)
+        risk_label = label_encoder.inverse_transform(prediction_encoded)
+        
+        return jsonify({'risk_level': risk_label[0]})
+
     except Exception as e:
         print(f"Prediction error: {e}")
         return jsonify({"error": "Failed to make a prediction."}), 500
@@ -35,21 +45,28 @@ def explain_prediction():
     try:
         model_pipeline = current_app.config['MODEL_PIPELINE']
         core_model = current_app.config['CORE_MODEL']
+        label_encoder = current_app.config['LABEL_ENCODER']
         data = request.json.get('student_data')
         input_df = pd.DataFrame([data])
-        
+
+        input_df['grade_change'] = input_df['G2'] - input_df['G1']
+        input_df['average_grade'] = (input_df['G1'] + input_df['G2']) / 2
+
         preprocessor = model_pipeline.named_steps['preprocessor']
-        processed_df = preprocessor.transform(input_df)
+        processed_data = preprocessor.transform(input_df)
         feature_names = preprocessor.get_feature_names_out()
-        processed_df = pd.DataFrame(processed_df, columns=feature_names)
+        
+        processed_df = pd.DataFrame(processed_data, columns=feature_names)
         
         explainer = shap.TreeExplainer(core_model)
         shap_values = explainer.shap_values(processed_df)
         
-        class_index = list(core_model.classes_).index('High')
-        instance_shap = shap_values[class_index][0]
+        high_risk_index = list(label_encoder.classes_).index('High')
+        instance_shap = shap_values[high_risk_index][0]
         
-        feature_importance = sorted(zip(feature_names, instance_shap), key=lambda x: abs(x[1]), reverse=True)
+        feature_importance_raw = sorted(zip(feature_names, instance_shap), key=lambda x: abs(x[1]), reverse=True)
+        
+        feature_importance = [(name, float(value)) for name, value in feature_importance_raw]
         
         return jsonify({"explanation": feature_importance[:10]})
     except Exception as e:
@@ -75,15 +92,18 @@ def generate_advice_endpoint():
     ### 4. Recommended Resources
     """
     
+    # --- THIS IS THE CORRECTED PART ---
+    # Append the custom prompt without adding extra quotes to avoid breaking the request.
     if custom_prompt:
-        prompt += f"""\n\nAdditional Guidance: The user has a specific request for this advice. Address the following: "{custom_prompt}" """
+        prompt += f"\n\nAdditional Guidance: The user has a specific request for this advice. Please address the following: {custom_prompt}"
     
     headers = { 'Content-Type': 'application/json' }
     api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={gemini_api_key}"
     payload = { "contents": [{"parts": [{"text": prompt}]}] }
 
     try:
-        response = requests.post(api_url, headers=headers, json=payload)
+        # Added a timeout for better error handling
+        response = requests.post(api_url, headers=headers, json=payload, timeout=30)
         response.raise_for_status()
         gemini_response = response.json()
         

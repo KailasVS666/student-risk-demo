@@ -5,40 +5,44 @@ from flask_cors import CORS
 import joblib
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
-
-# --- ML Model Loading ---
-# Load models globally so they are accessible to the app
-try:
-    model_pipeline = joblib.load('early_warning_model_pipeline.joblib')
-    core_model = joblib.load('student_risk_classifier.joblib')
-except FileNotFoundError:
-    print("Model files not found. Please run 'python train_model.py' first.")
-    model_pipeline = None
-    core_model = None
-
 
 def create_app():
     """Application factory function."""
     app = Flask(__name__)
     CORS(app)
 
-    # Make models and API keys available to the app's context
+    # --- Load ML Models and Encoder ---
+    try:
+        # Load the TUNED models and the new label encoder
+        model_pipeline = joblib.load('early_warning_model_pipeline_tuned.joblib')
+        core_model = joblib.load('student_risk_classifier_tuned.joblib')
+        label_encoder = joblib.load('label_encoder.joblib')
+    except FileNotFoundError as e:
+        print(f"Error loading model files: {e}")
+        print("Please ensure you have run 'python train_model.py' successfully.")
+        # Set to None so the app can still start, but prediction routes will fail
+        model_pipeline = None
+        core_model = None
+        label_encoder = None
+
+    # --- App Configuration ---
+    # Make models and encoder available to the app's context
     app.config['MODEL_PIPELINE'] = model_pipeline
     app.config['CORE_MODEL'] = core_model
+    app.config['LABEL_ENCODER'] = label_encoder
 
-    # Load Gemini API Key from .env file
-    # Note: Your .env file uses 'GEMINI_API_KEY', not 'GOOGLE_API_KEY'
+    # Load Gemini API Key
     app.config['GEMINI_API_KEY'] = os.getenv("GEMINI_API_KEY")
 
-    # Load and parse the Firebase config string from the .env file
+    # Load and parse the Firebase config from the .env file
     firebase_config_str = os.getenv('FIREBASE_CONFIG')
     if firebase_config_str:
         try:
             app.config['FIREBASE_CONFIG'] = json.loads(firebase_config_str)
         except json.JSONDecodeError:
-            print("Error: Could not parse FIREBASE_CONFIG from .env file. Ensure it is a valid JSON string on one line.")
+            print("Error: Could not parse FIREBASE_CONFIG. Ensure it is a valid JSON string.")
             app.config['FIREBASE_CONFIG'] = {}
     else:
         app.config['FIREBASE_CONFIG'] = {}
