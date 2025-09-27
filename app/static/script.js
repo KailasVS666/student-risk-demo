@@ -17,6 +17,23 @@ async function initializeFirebase() {
     }
 }
 
+// --- NEW: Toast Notification Function ---
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 500);
+        }, 3000);
+    }, 100);
+}
+
 function runApp(db, auth) {
     // --- Element selections ---
     const authContainer = document.getElementById('auth-container');
@@ -107,7 +124,6 @@ function runApp(db, auth) {
             formData[el.id] = (el.type === 'range') ? parseInt(el.value) : el.value;
         });
         
-        // Add custom prompt to form data
         if (customPromptInput) {
             formData['custom_prompt'] = customPromptInput.value.trim();
         }
@@ -146,61 +162,59 @@ function runApp(db, auth) {
     };
 
     saveProfileBtn.addEventListener('click', async () => {
-        if (!currentUser) return alert('You must be logged in to save a profile.');
+        if (!currentUser) return showToast('You must be logged in to save a profile.', 'error');
         const filename = document.getElementById('profileName').value.trim();
-        if (!filename) return alert('Please enter a filename.');
+        if (!filename) return showToast('Please enter a profile name.', 'error');
         
         const data = getFormData();
         const profilesRef = db.collection('users').doc(currentUser.uid).collection('student_profiles');
         try {
             await profilesRef.doc(filename).set({ data: data });
-            alert('Profile saved successfully!');
+            showToast('Profile saved successfully!');
             fetchProfiles();
         } catch (error) {
             console.error("Error saving profile:", error);
-            alert('Failed to save profile.');
+            showToast('Failed to save profile.', 'error');
         }
     });
 
     loadProfileBtn.addEventListener('click', async () => {
-        if (!currentUser) return alert('You must be logged in to load a profile.');
+        if (!currentUser) return showToast('You must be logged in to load a profile.', 'error');
         const filename = loadProfileSelect.value;
-        if (!filename) return alert('Please select a profile to load.');
+        if (!filename) return showToast('Please select a profile to load.', 'error');
         
         const profileDocRef = db.collection('users').doc(currentUser.uid).collection('student_profiles').doc(filename);
         try {
             const doc = await profileDocRef.get();
             if (doc.exists) {
                 loadFormData(doc.data().data);
-                alert('Profile loaded successfully!');
+                showToast('Profile loaded successfully!');
             } else {
-                alert('Profile not found.');
+                showToast('Profile not found.', 'error');
             }
         } catch (error) {
             console.error("Error loading profile:", error);
-            alert('Failed to load profile.');
+            showToast('Failed to load profile.', 'error');
         }
     });
 
     clearFormBtn.addEventListener('click', () => {
         const form = document.getElementById('inputForm');
-        const inputs = form.querySelectorAll('input, select');
+        const inputs = form.querySelectorAll('input, select, textarea');
         
         inputs.forEach(input => {
-            const defaultValue = input.getAttribute('value') || input.querySelector('option').value;
-            input.value = defaultValue;
-            
-            // Update the display for range sliders
             if (input.type === 'range') {
+                const defaultValue = input.defaultValue || 1;
+                input.value = defaultValue;
                 const label = document.getElementById(input.id + 'Value');
-                if (label) {
-                    label.textContent = defaultValue;
-                }
+                if (label) label.textContent = defaultValue;
+            } else if (input.tagName === 'SELECT') {
+                input.selectedIndex = 0;
+            } else {
+                input.value = '';
             }
         });
-        if (customPromptInput) {
-            customPromptInput.value = '';
-        }
+        showToast('Form cleared.', 'info');
     });
     
     // --- Wizard Logic ---
@@ -227,7 +241,7 @@ function runApp(db, auth) {
         }
     });
 
-    // --- NEW: Feature Dictionary for Chart Tooltips ---
+    // --- Feature Dictionary for Chart Tooltips ---
     const featureDictionary = {
         'G2': 'Second Period Grade',
         'G1': 'First Period Grade',
@@ -248,8 +262,7 @@ function runApp(db, auth) {
         return featureDictionary[cleanedName] || cleanedName;
     };
 
-
-    // --- Chart Rendering Logic (UPDATED with tooltips) ---
+    // --- Chart Rendering Logic ---
     const renderExplanationChart = (explanation) => {
         const ctx = document.getElementById('explanationChart').getContext('2d');
         if (explanationChart) {
@@ -298,7 +311,6 @@ function runApp(db, auth) {
         });
     };
     
-    // --- NEW: Function to render a dynamic SHAP summary
     const renderShapSummary = (explanation) => {
       if (!shapSummaryDiv) return;
       
@@ -325,7 +337,6 @@ function runApp(db, auth) {
       shapSummaryDiv.textContent = summaryText;
     };
 
-    // --- NEW: Function to render grades comparison chart
     const renderGradesChart = (studentData, averages) => {
       const ctx = document.getElementById('gradesChart').getContext('2d');
       if (gradesChart) {
@@ -360,59 +371,22 @@ function runApp(db, auth) {
       });
     };
 
-    // --- Function to render advice with interactive checklist ---
     const renderAdvice = (adviceText) => {
         const adviceOutput = document.getElementById('adviceOutput');
-        let html = '';
-        
-        // Split advice into sections
-        const sections = adviceText.split('### ');
-        
-        sections.forEach(section => {
-            if (!section.trim()) return;
-
-            const lines = section.split('\n');
-            const title = lines.shift().trim();
-            let content = lines.join('<br>').trim();
-
-            html += `<h3>${title}</h3>`;
-
-            // Special handling for Actionable Steps to create a checklist
-            if (title.includes("Actionable Steps")) {
-                const steps = content.split('<br>').filter(line => line.trim().startsWith('* '));
-                html += '<ul class="checklist">';
-                steps.forEach((step, index) => {
-                    const stepText = step.replace('* ', '').trim();
-                    if(stepText) {
-                        html += `<li>
-                                    <input type="checkbox" id="step-${index}" />
-                                    <label for="step-${index}">${stepText}</label>
-                                 </li>`;
-                    }
-                });
-                html += '</ul>';
-            } else {
-                html += `<p>${content.replace(/\* /g, '<br>&bull; ')}</p>`;
-            }
-        });
-        
-        // This is the correct way to add the adviceContent div
-        const contentDiv = document.createElement('div');
-        contentDiv.id = 'adviceContent';
-        contentDiv.innerHTML = html;
-        
-        adviceOutput.innerHTML = '';
-        adviceOutput.appendChild(contentDiv);
+        adviceOutput.innerHTML = adviceText; // Assuming advice is pre-formatted HTML from API
     };
 
-    // --- Generate Advice Event Listener ---
+    // --- Generate Advice Event Listener (UPDATED with button loading state) ---
     generateAdviceBtn.addEventListener('click', async () => {
         const inputData = getFormData();
         
-        // Show loading state and disable button
-        resultsSection.classList.remove('hidden');
-        loadingSpinner.classList.remove('hidden');
+        // --- MODIFIED: Button-specific loading state ---
+        const originalBtnText = generateAdviceBtn.innerHTML;
+        generateAdviceBtn.innerHTML = `<span class="button-loader"></span>Generating...`;
         generateAdviceBtn.disabled = true;
+        
+        resultsSection.classList.remove('hidden');
+        loadingSpinner.classList.add('hidden'); // Hide the main spinner
         
         // Clear previous content
         document.getElementById('adviceOutput').innerHTML = '';
@@ -432,59 +406,48 @@ function runApp(db, auth) {
                 fetch('/get-grade-averages')
             ]);
 
-            // Process Risk
-            if (!riskResponse.ok) throw new Error(`Risk prediction failed with status: ${riskResponse.status}`);
+            if (!riskResponse.ok) throw new Error(`Risk prediction failed: ${riskResponse.statusText}`);
             const riskResult = await riskResponse.json();
             const riskLevel = riskResult.risk_level;
             document.getElementById('riskLevel').textContent = riskLevel;
             const riskColor = riskLevel === 'High' ? 'text-red-500' : (riskLevel === 'Medium' ? 'text-yellow-500' : 'text-green-500');
             document.getElementById('riskLevel').className = `font-bold ${riskColor}`;
 
-            // Process and Render Advice
-            if (!adviceResponse.ok) throw new Error(`Advice generation failed with status: ${adviceResponse.status}`);
+            if (!adviceResponse.ok) throw new Error(`Advice generation failed: ${adviceResponse.statusText}`);
             const adviceResult = await adviceResponse.json();
             renderAdvice(adviceResult.advice);
 
-            // Process and Render Charts
-            if (!explanationResponse.ok) throw new Error(`Explanation failed with status: ${explanationResponse.status}`);
+            if (!explanationResponse.ok) throw new Error(`Explanation generation failed: ${explanationResponse.statusText}`);
             const explanationResult = await explanationResponse.json();
             if (explanationResult.explanation) {
                 renderExplanationChart(explanationResult.explanation);
                 renderShapSummary(explanationResult.explanation);
             }
             
-            if (!gradesResponse.ok) throw new Error(`Grades averages failed with status: ${gradesResponse.status}`);
+            if (!gradesResponse.ok) throw new Error(`Grade averages fetch failed: ${gradesResponse.statusText}`);
             const gradesAverages = await gradesResponse.json();
             renderGradesChart(inputData, gradesAverages);
-
 
         } catch (error) {
             console.error("Error during generation process:", error);
             document.getElementById('adviceOutput').innerHTML = `<p class="text-red-500">Failed to generate advice: ${error.message}</p>`;
         } finally {
-            // Hide loading state and re-enable button
-            loadingSpinner.classList.add('hidden');
+            // --- MODIFIED: Restore button state ---
+            generateAdviceBtn.innerHTML = originalBtnText;
             generateAdviceBtn.disabled = false;
         }
     });
 
-    // --- Copy to Clipboard Logic ---
     copyAdviceBtn.addEventListener('click', () => {
-        const adviceContent = document.getElementById('adviceContent');
-        if (adviceContent) {
-            navigator.clipboard.writeText(adviceContent.innerText).then(() => {
-                const originalText = copyAdviceBtn.innerHTML;
-                copyAdviceBtn.textContent = 'Copied!';
-                setTimeout(() => {
-                    copyAdviceBtn.innerHTML = originalText;
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy text: ', err);
-            });
-        }
+        const adviceContent = document.getElementById('adviceOutput').innerText;
+        navigator.clipboard.writeText(adviceContent).then(() => {
+            showToast('Advice copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            showToast('Failed to copy advice.', 'error');
+        });
     });
 
-    // --- Initialize the wizard ---
     updateWizardUI(); 
 }
 
