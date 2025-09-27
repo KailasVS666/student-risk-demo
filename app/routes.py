@@ -6,142 +6,143 @@ import numpy as np
 import google.generativeai as genai
 import traceback
 
-# Create a Blueprint, which is a way to organize a group of related views and other code.
+# Create a Blueprint
 main_bp = Blueprint('main', __name__)
+
+# --- NEW: Helper function to build a detailed, context-rich prompt ---
+def build_gemini_prompt(student_data, custom_prompt=""):
+    """
+    Creates a detailed, structured prompt for the Gemini API by translating
+    student data into human-readable context.
+    """
+    # --- Data Dictionaries for Translation ---
+    education_levels = {0: "None", 1: "Primary (4th grade)", 2: "5th to 9th grade", 3: "Secondary", 4: "Higher education"}
+    job_types = {"teacher": "Teacher", "health": "Health care", "services": "Civil services", "at_home": "At home", "other": "Other"}
+    yes_no = {"yes": "Yes", "no": "No"}
+
+    # --- Build a human-readable context string ---
+    context = f"""
+    ### Student Context
+    - **Demographics:** Age {student_data.get('age')}. Lives in an '{student_data.get('address', 'N/A').upper()}' (Urban/Rural) area.
+    - **Family Background:**
+        - Mother's Education: {education_levels.get(student_data.get('Medu'), 'N/A')}.
+        - Father's Education: {education_levels.get(student_data.get('Fedu'), 'N/A')}.
+        - Mother's Job: {job_types.get(student_data.get('Mjob'), 'N/A')}.
+        - Father's Job: {job_types.get(student_data.get('Fjob'), 'N/A')}.
+        - Family Relationship Quality: {student_data.get('famrel')}/5.
+    - **Academic Profile:**
+        - Recent Grades (G1, G2): {student_data.get('G1')}/20, {student_data.get('G2')}/20.
+        - Past Failures: {student_data.get('failures')}.
+        - Weekly Study Time: {student_data.get('studytime')} (1: <2 hrs, 2: 2-5 hrs, 3: 5-10 hrs, 4: >10 hrs).
+        - Wants to pursue higher education: {yes_no.get(student_data.get('higher'), 'N/A')}.
+    - **Social & Lifestyle:**
+        - Goes out with friends: {student_data.get('goout')}/5 (Frequency).
+        - In a romantic relationship: {yes_no.get(student_data.get('romantic'), 'N/A')}.
+        - Weekday & Weekend Alcohol Consumption: {student_data.get('Dalc')}/5 and {student_data.get('Walc')}/5.
+    """
+
+    # --- Construct the full prompt ---
+    prompt = f"""
+    **Persona:** You are an expert, empathetic, and highly motivational student mentor. Your tone should be encouraging, insightful, and constructive. Avoid being generic; use the specific details from the student's context to make your advice personal and actionable.
+
+    **Task:** Based on the student's profile below, provide personalized mentoring advice. Structure your response in Markdown using the following strict format:
+    ### 1. Overall Assessment
+    ### 2. Key Strengths to Celebrate
+    ### 3. Areas for Strategic Focus
+    ### 4. Actionable Steps & Strategies
+    ### 5. Recommended Resources
+
+    {context}
+    """
+    
+    if custom_prompt:
+        prompt += f"\n**Additional Guidance:** Please also address the user's specific request: '{custom_prompt}'"
+    
+    return prompt
 
 def preprocess_student_data(data):
     """
     Takes raw student data, converts it to a DataFrame, and engineers new features.
-    This function ensures that the input for prediction and explanation is consistent.
     """
     df = pd.DataFrame([data])
-    # Engineer features that might be predictive
     df['grade_change'] = df['G2'] - df['G1']
     df['average_grade'] = (df['G1'] + df['G2']) / 2
     return df
 
 @main_bp.route('/')
 def home():
-    """Serves the main HTML file for the user interface."""
+    """Serves the main HTML file."""
     return render_template('index.html')
 
 @main_bp.route('/firebase-config')
 def firebase_config():
-    """Provides the Firebase configuration to the frontend securely."""
+    """Provides the Firebase configuration to the frontend."""
     return jsonify(current_app.config['FIREBASE_CONFIG'])
 
 @main_bp.route('/predict-risk', methods=['POST'])
 def predict_risk():
-    """
-    Receives student data, preprocesses it, and returns a risk level prediction.
-    """
+    """Predicts student risk level."""
     try:
-        # Load the pre-trained model pipeline and label encoder from the app config
         model_pipeline = current_app.config['MODEL_PIPELINE']
         label_encoder = current_app.config['LABEL_ENCODER']
-        
         data = request.json.get('student_data')
         if not data:
             return jsonify({"error": "No student data provided."}), 400
 
-        # Preprocess the incoming data to create the necessary features
         input_df = preprocess_student_data(data)
-        
-        # Use the pipeline to predict the encoded risk level
         prediction_encoded = model_pipeline.predict(input_df)
-        
-        # Convert the encoded prediction back to a human-readable label
         risk_label = label_encoder.inverse_transform(prediction_encoded)
-        
         return jsonify({'risk_level': risk_label[0]})
-
     except Exception as e:
         print(f"Prediction error: {e}")
         return jsonify({"error": "Failed to make a prediction."}), 500
 
 @main_bp.route('/explain-prediction', methods=['POST'])
 def explain_prediction():
-    """
-    Provides a SHAP-based explanation for a prediction, identifying the key factors
-    that influenced the model's decision.
-    """
+    """Provides a SHAP-based explanation for a prediction."""
     try:
         model_pipeline = current_app.config['MODEL_PIPELINE']
         core_model = current_app.config['CORE_MODEL']
         label_encoder = current_app.config['LABEL_ENCODER']
-        
         data = request.json.get('student_data')
         if not data:
             return jsonify({"error": "No student data provided."}), 400
             
-        # Preprocess the data just like in the prediction route
         input_df = preprocess_student_data(data)
-
-        # Use the preprocessor from the pipeline to transform the data
         preprocessor = model_pipeline.named_steps['preprocessor']
         processed_data = preprocessor.transform(input_df)
         
-        # Create a SHAP explainer and calculate the values
         explainer = shap.TreeExplainer(core_model)
         shap_values = explainer.shap_values(processed_data)
         
-        # Find the SHAP values specifically for the 'High' risk class
         high_risk_index = list(label_encoder.classes_).index('High')
         instance_shap = shap_values[high_risk_index][0]
         
-        # Get the names of the features after preprocessing
         feature_names = preprocessor.get_feature_names_out()
-
-        # Pair feature names with their SHAP values and sort them by importance
         feature_importance = sorted(zip(feature_names, instance_shap), key=lambda x: abs(x[1]), reverse=True)
-        
-        # Return the top 10 most influential features
         return jsonify({"explanation": feature_importance[:10]})
-
     except Exception as e:
         print(f"SHAP explanation error: {e}")
         traceback.print_exc()
         return jsonify({"error": "Failed to generate explanation."}), 500
 
+# --- UPDATED: Route using the new prompt builder ---
 @main_bp.route('/generate-advice', methods=['POST'])
 def generate_advice_endpoint():
-    """
-    Connects to the Gemini API to generate personalized advice for a student
-    based on their data.
-    """
+    """Connects to the Gemini API to generate personalized advice."""
     try:
         gemini_api_key = current_app.config['GEMINI_API_KEY']
         data = request.json.get('student_data')
-        custom_prompt = data.pop('custom_prompt', '')
+        custom_prompt_text = data.pop('custom_prompt', '')
 
         if not data:
             return jsonify({"error": "No student data provided"}), 400
 
-        # Format the student data into a clean, readable string for the prompt
-        student_info = "\n".join([f"- {key.replace('_', ' ').title()}: {value}" for key, value in data.items()])
-
-        # Construct the prompt for the generative model
-        prompt = f"""
-        Role: You are an expert, empathetic, and motivational student mentor.
-
-        Please provide personalized mentoring advice based on the following student information:
-        {student_info}
-
-        Task: Structure your response in Markdown using the following strict format:
-        ### 1. Overall Assessment
-        ### 2. Key Areas for Focus
-        ### 3. Actionable Steps & Strategies
-        ### 4. Recommended Resources
-        """
-        
-        if custom_prompt:
-            prompt += f"\n\nAdditional Guidance: Please also address the user's specific request: {custom_prompt}"
+        # Use the new helper function to build the prompt
+        prompt = build_gemini_prompt(data, custom_prompt_text)
         
         genai.configure(api_key=gemini_api_key)
-        
-        # --- THIS IS THE NEW, CORRECT MODEL NAME FROM YOUR LIST ---
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        
+        model = genai.GenerativeModel('gemini-pro-latest')
         response = model.generate_content(prompt)
         
         return jsonify({"advice": response.text})
@@ -153,14 +154,11 @@ def generate_advice_endpoint():
 
 @main_bp.route('/get-grade-averages', methods=['GET'])
 def get_grade_averages():
-    """
-    Efficiently retrieves the pre-calculated grade averages from the app's configuration.
-    """
+    """Retrieves pre-calculated grade averages."""
     try:
-        # This is much more efficient than reading the CSV on every request
         grades_avg = current_app.config.get('GRADE_AVERAGES')
         if grades_avg is None:
-            return jsonify({"error": "Grade averages not found in app configuration."}), 500
+            return jsonify({"error": "Grade averages not found."}), 500
         return jsonify(grades_avg)
     except Exception as e:
         print(f"Error fetching grade averages: {e}")
