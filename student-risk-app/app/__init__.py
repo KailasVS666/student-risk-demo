@@ -18,6 +18,31 @@ class ColumnDropper(BaseEstimator, TransformerMixin):
 
 def create_app():
     load_dotenv()
+    
+    # --- Validate Critical Environment Variables ---
+    required_env_vars = [
+        'GEMINI_API_KEY',
+        'FIREBASE_API_KEY',
+        'FIREBASE_AUTH_DOMAIN',
+        'FIREBASE_PROJECT_ID',
+        'FIREBASE_STORAGE_BUCKET',
+        'FIREBASE_MESSAGING_SENDER_ID',
+        'FIREBASE_APP_ID'
+    ]
+    
+    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+    if missing_vars:
+        raise EnvironmentError(
+            f"\n{'='*60}\n"
+            f"ERROR: Missing required environment variables!\n"
+            f"{'='*60}\n"
+            f"Missing: {', '.join(missing_vars)}\n\n"
+            f"Please create a .env file with all required variables.\n"
+            f"See README.md for setup instructions.\n"
+            f"{'='*60}\n"
+        )
+    
+    print("✓ All required environment variables found.")
 
     app = Flask(__name__)
 

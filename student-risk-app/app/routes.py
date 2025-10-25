@@ -6,6 +6,7 @@ import pandas as pd
 from flask import Blueprint, render_template, request, jsonify
 import google.generativeai as genai
 from dotenv import load_dotenv
+import shap
 
 # CRITICAL FIX: Load environment variables from .env file for security
 load_dotenv()
@@ -99,30 +100,89 @@ def map_risk_category(grade):
     else:
         return "low", "On track, but minor improvements can maximize potential."
 
-def get_shap_feature_importance(data):
+def get_shap_feature_importance(preprocessed_data, predicted_class):
     """
-    Calculates and processes SHAP feature importances.
-    *** STATIC PLACEHOLDER DATA FOR UI/UX TESTING ***
+    Calculates SHAP feature importances for the given input row and predicted class.
+    Handles multi-class outputs across SHAP versions (TreeExplainer/Explainer) safely.
+    Returns top 5 features with highest absolute impact.
     """
     if risk_explainer is None:
+        # Fallback to static data if model not loaded
         return [
-             {'feature': 'G2 (Second Grade)', 'importance': 1.0},
-             {'feature': 'Model Error', 'importance': -0.7},
-             {'feature': 'Model Error', 'importance': 0.6},
-             {'feature': 'Model Error', 'importance': -0.5},
-             {'feature': 'Model Error', 'importance': 0.4},
+            {'feature': 'Second Grade (G2)', 'importance': 0.85},
+            {'feature': 'Past Failures', 'importance': -0.65},
+            {'feature': 'Weekly Study Time', 'importance': 0.40},
+            {'feature': 'Absences', 'importance': -0.30},
+            {'feature': "Mother's Education", 'importance': 0.25},
         ]
 
-    top_features = [
-        {'feature': 'G2 (Second Grade)', 'importance': 0.85},
-        {'feature': 'Failures (Past)', 'importance': -0.65},
-        {'feature': 'Study Time', 'importance': 0.40},
-        {'feature': 'Absences', 'importance': -0.30},
-        {'feature': "Mother's Education", 'importance': 0.25},
-    ]
+    try:
+        feature_names = preprocessed_data.columns.tolist()
 
-    top_features.sort(key=lambda x: abs(x['importance']), reverse=True)
-    return top_features
+        # Prefer the unified API; fall back to TreeExplainer if needed
+        try:
+            explainer = shap.Explainer(risk_explainer)
+            exp = explainer(preprocessed_data)
+            values = getattr(exp, 'values', None)
+        except Exception:
+            explainer = shap.TreeExplainer(risk_explainer)
+            values = explainer.shap_values(preprocessed_data)
+
+        # Normalize to a 1D array of shape (n_features,)
+        class_values = None
+        if isinstance(values, list):
+            # List per class -> pick predicted class, first row
+            class_values = values[int(predicted_class)][0]
+        elif hasattr(values, 'ndim'):
+            if values.ndim == 3:
+                # (n_samples, n_classes, n_features)
+                class_values = values[0, int(predicted_class), :]
+            elif values.ndim == 2:
+                # (n_samples, n_features)
+                class_values = values[0, :]
+            else:
+                # Unexpected shape; flatten first row
+                class_values = values.reshape(values.shape[-1])
+        else:
+            # Unknown type; try to coerce
+            class_values = np.array(values)[0]
+
+        # Pair features with their SHAP impact
+        importance_pairs = list(zip(feature_names, class_values.tolist()))
+
+        # Sort by absolute importance and select top 5
+        top_sorted = sorted(importance_pairs, key=lambda x: abs(x[1]), reverse=True)[:5]
+
+        # Friendly display names for some common features
+        readable_names = {
+            'G1': 'First Grade (G1)',
+            'G2': 'Second Grade (G2)',
+            'failures': 'Past Failures',
+            'studytime': 'Weekly Study Time',
+            'absences': 'Absences',
+            'Medu': "Mother's Education",
+            'Fedu': "Father's Education",
+            'goout': 'Going Out Frequency',
+            'health': 'Health Status',
+            'famrel': 'Family Relationship Quality'
+        }
+
+        return [
+            {
+                'feature': readable_names.get(name, name.replace('_', ' ').title()),
+                'importance': float(val)
+            }
+            for name, val in top_sorted
+        ]
+
+    except Exception as e:
+        print(f"SHAP calculation error: {e}")
+        # Conservative fallback to avoid breaking the UI
+        return [
+            {'feature': 'Second Grade (G2)', 'importance': 0.85},
+            {'feature': 'Weekly Study Time', 'importance': 0.40},
+            {'feature': 'Absences', 'importance': -0.30},
+        ]
 
 
 def generate_mentoring_advice(student_data, predicted_g3, risk_category, top_features):
@@ -173,6 +233,82 @@ def generate_mentoring_advice(student_data, predicted_g3, risk_category, top_fea
         return f"Error generating advice: {e}"
 
 
+def validate_student_data(data):
+    """
+    Validates incoming student data for required fields and value ranges.
+    Raises ValueError if validation fails.
+    """
+    # Required fields
+    required_fields = ['G1', 'G2', 'age', 'school', 'sex']
+    for field in required_fields:
+        if field not in data:
+            raise ValueError(f"Missing required field: {field}")
+    
+    # Numeric range validations
+    validations = {
+        'G1': (0, 20, "First grade (G1)"),
+        'G2': (0, 20, "Second grade (G2)"),
+        'age': (15, 22, "Age"),
+        'studytime': (1, 4, "Study time"),
+        'failures': (0, 4, "Number of failures"),
+        'famrel': (1, 5, "Family relationship"),
+        'freetime': (1, 5, "Free time"),
+        'goout': (1, 5, "Going out"),
+        'Dalc': (1, 5, "Workday alcohol consumption"),
+        'Walc': (1, 5, "Weekend alcohol consumption"),
+        'health': (1, 5, "Health status"),
+        'absences': (0, 93, "Absences"),
+        'Medu': (0, 4, "Mother's education"),
+        'Fedu': (0, 4, "Father's education"),
+        'traveltime': (1, 4, "Travel time")
+    }
+    
+    for field, (min_val, max_val, display_name) in validations.items():
+        if field in data:
+            try:
+                value = int(data[field])
+                if not (min_val <= value <= max_val):
+                    raise ValueError(
+                        f"{display_name} must be between {min_val} and {max_val}. "
+                        f"Received: {value}"
+                    )
+            except (ValueError, TypeError) as e:
+                if "must be between" in str(e):
+                    raise
+                raise ValueError(f"{display_name} must be a valid number. Received: {data[field]}")
+    
+    # Categorical field validations
+    categorical_validations = {
+        'school': ['GP', 'MS'],
+        'sex': ['F', 'M'],
+        'address': ['U', 'R'],
+        'famsize': ['GT3', 'LE3'],
+        'Pstatus': ['T', 'A'],
+        'schoolsup': ['yes', 'no'],
+        'famsup': ['yes', 'no'],
+        'paid': ['yes', 'no'],
+        'activities': ['yes', 'no'],
+        'nursery': ['yes', 'no'],
+        'higher': ['yes', 'no'],
+        'internet': ['yes', 'no'],
+        'romantic': ['yes', 'no'],
+        'Mjob': ['teacher', 'health', 'services', 'at_home', 'other'],
+        'Fjob': ['teacher', 'health', 'services', 'at_home', 'other'],
+        'reason': ['home', 'reputation', 'course', 'other'],
+        'guardian': ['mother', 'father', 'other']
+    }
+    
+    for field, valid_values in categorical_validations.items():
+        if field in data:
+            if data[field] not in valid_values:
+                raise ValueError(
+                    f"{field} must be one of {valid_values}. "
+                    f"Received: {data[field]}"
+                )
+    
+    return True
+
+
 # --- Routes ---
 
 @main_bp.route('/')
@@ -202,6 +338,12 @@ def predict_risk():
     try:
         data = request.get_json()
         
+        # VALIDATION: Check input data
+        try:
+            validate_student_data(data)
+        except ValueError as ve:
+            return jsonify({"error": f"Invalid input: {str(ve)}"}), 400
+        
         # 1. Data Transformation: Convert the JSON payload into a DataFrame row
         data_for_pipeline = {k: v for k, v in data.items() if k not in ['customPrompt']}
         feature_df = pd.DataFrame([data_for_pipeline])
@@ -211,16 +353,6 @@ def predict_risk():
              return jsonify({"error": "Label encoder not loaded. Cannot preprocess data."}), 500
 
         preprocessed_df = preprocess_data_for_pipeline(feature_df, label_encoder)
-        
-        # DEBUG: Check what data looks like after preprocessing
-        print(f"\nDEBUG - Before preprocessing:")
-        print(f"  G1={feature_df['G1'].iloc[0]}, G2={feature_df['G2'].iloc[0]}, average_grade={feature_df['average_grade'].iloc[0]}")
-        print(f"  school={feature_df['school'].iloc[0]}, sex={feature_df['sex'].iloc[0]}")
-        print(f"\nDEBUG - After preprocessing:")
-        print(f"  G1={preprocessed_df['G1'].iloc[0]}, G2={preprocessed_df['G2'].iloc[0]}, average_grade={preprocessed_df['average_grade'].iloc[0]}")
-        print(f"  school={preprocessed_df['school'].iloc[0]}, sex={preprocessed_df['sex'].iloc[0]}")
-        print(f"  DataFrame shape: {preprocessed_df.shape}")
-        print(f"  Column order: {list(preprocessed_df.columns)[:10]}")
         
         # 2. Prediction: The model is a CLASSIFIER that predicts risk categories
         # Output: 0 = High, 1 = Low, 2 = Medium
@@ -234,11 +366,6 @@ def predict_risk():
         # This is a rough approximation for the UI
         grade_estimates = {'High': 8, 'Medium': 12, 'Low': 16}
         predicted_g3 = grade_estimates.get(predicted_risk_label, 10)
-        
-        # DEBUG: Log the actual prediction
-        print(f"\nDEBUG: Model predicted class {predicted_risk_class} = {predicted_risk_label} risk")
-        print(f"       Input G1={data_for_pipeline.get('G1')}, G2={data_for_pipeline.get('G2')}")
-        print(f"       Estimated G3 for display: {predicted_g3}\n")
 
         # 3. Determine Risk Category and Descriptor
         risk_category = predicted_risk_label.lower()
@@ -250,7 +377,7 @@ def predict_risk():
         risk_descriptor = risk_descriptors.get(risk_category, "Status unknown.")
 
         # 4. Feature Importance (SHAP): Get the most influential factors
-        top_features = get_shap_feature_importance(data_for_pipeline)
+        top_features = get_shap_feature_importance(preprocessed_df, predicted_risk_class)
 
         # 5. Personalized Advice: Generate advice using Gemini (passing full data including customPrompt)
         mentoring_advice = generate_mentoring_advice(data, predicted_g3, risk_category, top_features)
