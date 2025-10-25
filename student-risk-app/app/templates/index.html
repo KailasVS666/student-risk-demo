@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Student Mentor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 font-inter"> 
+
+<div id="auth-container" class="container mx-auto p-4 sm:p-6 lg:p-8 flex items-center justify-center">
+    <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-2xl transition duration-500 ease-in-out">
+        <h2 class="text-3xl font-extrabold text-center text-gray-900">Welcome to AI Mentor</h2>
+        <div id="auth-error" class="text-red-500 text-center text-sm"></div>
+        <div class="space-y-4">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                <input type="email" id="email" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500" required>
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="password" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-3 focus:border-indigo-500 focus:ring-indigo-500" required>
+            </div>
+        </div>
+        <div class="flex space-x-4">
+            <button id="loginBtn" class="w-full px-4 py-3 rounded-lg font-bold btn-primary">Login</button>
+            <button id="signupBtn" class="w-full px-4 py-3 rounded-lg font-bold btn-secondary">Sign Up</button>
+        </div>
+    </div>
+</div>
+
+<div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 min-h-screen hidden">
+    <header class="text-center mb-10 relative">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900">
+            <span class="text-indigo-600">AI</span> Student Mentor
+        </h1>
+        <p class="mt-2 text-lg text-gray-600 max-w-2xl mx-auto">
+            A tool for risk assessment, personalized mentoring, and data analysis.
+        </p>
+        <div class="absolute top-0 right-0">
+            <span id="user-email" class="text-sm text-gray-600 mr-4 hidden sm:inline-block"></span>
+            <button id="logoutBtn" class="px-4 py-2 text-sm rounded-lg font-semibold bg-red-500 text-white hover:bg-red-600 shadow-md transition duration-150">Logout</button>
+        </div>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <aside class="lg:col-span-1 p-6 bg-white rounded-xl shadow-xl border border-gray-100 h-full">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800 flex items-center border-b pb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.82 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.82 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.82-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.82-3.31 2.37-2.37.526.34 1.028.665 1.53.985.502.32 1.01.62 1.517.915a1.724 1.724 0 002.572-1.065z"/></svg>
+                Profile Management
+            </h2>
+            <div class="mb-4">
+                <label for="profileName" class="block text-sm font-medium text-gray-700">Save Profile As:</label>
+                <input type="text" id="profileName" value="new_student"
+                        class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                <button id="saveProfileBtn" class="mt-2 w-full px-4 py-2 rounded-lg font-bold btn-primary">
+                    Save Profile
+                </button>
+            </div>
+            <div class="mb-4">
+                <label for="loadProfileSelect" class="block text-sm font-medium text-gray-700">Load Existing Profile:</label>
+                <select id="loadProfileSelect" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">- Select a profile -</option>
+                </select>
+                <button id="loadProfileBtn" class="mt-2 w-full px-4 py-2 rounded-lg font-bold btn-secondary">
+                    Load Profile
+                </button>
+            </div>
+            <hr class="my-6 border-gray-200">
+            
+            <div class="mb-4">
+                <label for="customPrompt" class="block text-sm font-medium text-gray-700">Custom Advice Request:</label>
+                <textarea id="customPrompt" rows="3" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="E.g., 'Focus on strategies for improving math grades and managing stress.'"></textarea>
+            </div>
+
+            <div class="flex flex-col space-y-2">
+                <button id="generateAdviceBtn" class="w-full px-4 py-3 rounded-lg font-bold text-white bg-indigo-600 hover:bg-indigo-700 text-lg disabled:opacity-50 transition duration-150" disabled>
+                    Generate Mentoring Advice
+                </button>
+                <button id="clearFormBtn" class="w-full px-4 py-3 rounded-lg font-bold btn-secondary">
+                    Clear Form
+                </button>
+            </div>
+        </aside>
+
+        <div class="lg:col-span-3">
+            <section id="inputForm" class="p-8 bg-white rounded-xl shadow-xl border border-gray-100">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800 section-header flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                    Student Profile
+                </h2>
+                
+                <div class="mb-10">
+                    <div class="flex items-center justify-between progress-bar-container">
+                        <div class="progress-step active" data-step="1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                            <span class="step-label">Demographics</span>
+                        </div>
+                        <div class="flex-auto border-t-2 transition duration-500 ease-in-out progress-line"></div>
+                        <div class="progress-step" data-step="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.247m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18s-3.332.477-4.5 1.247"/></svg>
+                            <span class="step-label">Academics</span>
+                        </div>
+                        <div class="flex-auto border-t-2 transition duration-500 ease-in-out progress-line"></div>
+                        <div class="progress-step" data-step="3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                            <span class="step-label">Lifestyle</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-step active-step">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-xl font-extrabold mb-3 text-gray-800">Demographics & Family</h3>
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">School</label>
+                                    <select id="school" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="GP">Gabriel Pereira</option>
+                                        <option value="MS">Mousinho da Silveira</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Sex</label>
+                                    <select id="sex" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="F">Female</option>
+                                        <option value="M">Male</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Age: <span id="ageValue" class="font-semibold text-indigo-600">17</span></label>
+                                    <input type="range" id="age" min="15" max="22" value="17" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Address</label>
+                                    <select id="address" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="U">Urban</option>
+                                        <option value="R">Rural</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-extrabold mb-3 text-white">.</h3>
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Family Size</label>
+                                    <select id="famsize" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="GT3">Greater than 3</option>
+                                        <option value="LE3">3 or less</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Parent's Status</label>
+                                    <select id="Pstatus" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="T">Together</option>
+                                        <option value="A">Apart</option>
+                                    </select>
+                                 </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700">Family Relationship: <span id="famrelValue" class="font-semibold text-indigo-600">4</span></label>
+                                    <input type="range" id="famrel" min="1" max="5" value="4" class="mt-1 block w-full">
+                                    <p class="text-xs text-gray-500 mt-1">1: Very Poor, 5: Excellent</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-step">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-xl font-extrabold mb-3 text-gray-800">Academics & Support</h3>
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Mother's Education: <span id="MeduValue" class="font-semibold text-indigo-600">2</span></label>
+                                    <input type="range" id="Medu" min="0" max="4" value="2" class="mt-1 block w-full">
+                                    <p class="text-xs text-gray-500 mt-1">0: None, 4: Higher Education</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Father's Education: <span id="FeduValue" class="font-semibold text-indigo-600">2</span></label>
+                                    <input type="range" id="Fedu" min="0" max="4" value="2" class="mt-1 block w-full">
+                                    <p class="text-xs text-gray-500 mt-1">0: None, 4: Higher Education</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Mother's Job</label>
+                                    <select id="Mjob" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="teacher">Teacher</option>
+                                        <option value="health">Health</option>
+                                        <option value="services">Services</option>
+                                        <option value="at_home">At Home</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Father's Job</label>
+                                    <select id="Fjob" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="teacher">Teacher</option>
+                                        <option value="health">Health</option>
+                                        <option value="services">Services</option>
+                                        <option value="at_home">At Home</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Weekly Study Time: <span id="studytimeValue" class="font-semibold text-indigo-600">2</span></label>
+                                    <input type="range" id="studytime" min="1" max="4" value="2" class="mt-1 block w-full">
+                                    <p class="text-xs text-gray-500 mt-1">1: &lt;2 hours, 4: &gt;10 hours</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-extrabold mb-3 text-white">.</h3>
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Reason for School</label>
+                                    <select id="reason" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="home">Close to Home</option>
+                                        <option value="reputation">Reputation</option>
+                                        <option value="course">Course Preference</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Guardian</label>
+                                    <select id="guardian" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="mother">Mother</option>
+                                        <option value="father">Father</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">School Support</label>
+                                    <select id="schoolsup" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Family Support</label>
+                                    <select id="famsup" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Paid Classes</label>
+                                    <select id="paid" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Wants Higher Ed</label>
+                                    <select id="higher" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-step">
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-xl font-extrabold mb-3 text-gray-800">Lifestyle & Grades</h3>
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Activities</label>
+                                    <select id="activities" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                 </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700">Attended Nursery</label>
+                                    <select id="nursery" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Internet Access</label>
+                                    <select id="internet" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Romantic Relationship</label>
+                                    <select id="romantic" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Travel Time: <span id="traveltimeValue" class="font-semibold text-indigo-600">1</span></label>
+                                    <input type="range" id="traveltime" min="1" max="4" value="1" class="mt-1 block w-full">
+                                    <p class="text-xs text-gray-500 mt-1">1: &lt;15 min, 4: &gt;1 hour</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Free Time: <span id="freetimeValue" class="font-semibold text-indigo-600">3</span></label>
+                                    <input type="range" id="freetime" min="1" max="5" value="3" class="mt-1 block w-full">
+                                    <p class="text-xs text-gray-500 mt-1">1: Very Low, 5: Very High</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-extrabold mb-3 text-white">.</h3>
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Going Out: <span id="gooutValue" class="font-semibold text-indigo-600">3</span></label>
+                                    <input type="range" id="goout" min="1" max="5" value="3" class="mt-1 block w-full">
+                                    <p class="text-xs text-gray-500 mt-1">1: Very Low, 5: Very High</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Workday Alcohol: <span id="DalcValue" class="font-semibold text-indigo-600">1</span></label>
+                                    <input type="range" id="Dalc" min="1" max="5" value="1" class="mt-1 block w-full">
+                                    <p class="text-xs text-gray-500 mt-1">1: Very Low, 5: Very High</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Weekend Alcohol: <span id="WalcValue" class="font-semibold text-indigo-600">1</span></label>
+                                    <input type="range" id="Walc" min="1" max="5" value="1" class="mt-1 block w-full">
+                                    <p class="text-xs text-gray-500 mt-1">1: Very Low, 5: Very High</p>
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700">Health Status: <span id="healthValue" class="font-semibold text-indigo-600">3</span></label>
+                                    <input type="range" id="health" min="1" max="5" value="3" class="mt-1 block w-full">
+                                    <p class="text-xs text-gray-500 mt-1">1: Very Poor, 5: Very Good</p>
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700">Absences: <span id="absencesValue" class="font-semibold text-indigo-600">5</span></label>
+                                    <input type="range" id="absences" min="0" max="93" value="5" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Past Failures: <span id="failuresValue" class="font-semibold text-indigo-600">0</span></label>
+                                    <input type="range" id="failures" min="0" max="4" value="0" class="mt-1 block w-full">
+                                </div>
+                                 <div>
+                                    <label class="block text-sm font-medium text-gray-700">First Grade (G1): <span id="G1Value" class="font-semibold text-indigo-600">10</span></label>
+                                    <input type="range" id="G1" min="0" max="20" value="10" class="mt-1 block w-full">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Second Grade (G2): <span id="G2Value" class="font-semibold text-indigo-600">10</span></label>
+                                    <input type="range" id="G2" min="0" max="20" value="10" class="mt-1 block w-full">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 pt-5">
+                    <div class="flex justify-between">
+                        <button id="prevBtn" class="px-6 py-3 rounded-lg font-bold btn-secondary">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                             Previous
+                        </button>
+                        <button id="nextBtn" class="px-6 py-3 rounded-lg font-bold btn-primary">
+                             Next
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="resultsSection" class="mt-8 p-8 bg-white rounded-xl shadow-xl border border-gray-100 hidden">
+                <div id="loadingSpinner" class="flex flex-col justify-center items-center py-12 hidden">
+                    <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600"></div>
+                    <p class="mt-4 text-gray-600 font-semibold">Analyzing profile and generating advice...</p>
+                </div>
+                
+                <div class="flex justify-between items-start">
+                    <h2 class="text-2xl font-bold mb-4 text-gray-800 section-header flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        Mentoring Analysis
+                    </h2>
+                    <button id="copyAdviceBtn" class="px-3 py-1.5 text-sm rounded-lg font-semibold btn-secondary flex items-center shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8" /></svg>
+                        Copy Advice
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-6">
+                    <div class="md:col-span-1">
+                        <div id="riskLevelBadge" class="p-4 rounded-xl shadow-lg text-center transition duration-500">
+                             <p class="text-sm font-bold uppercase mb-1">Predicted Risk Level</p>
+                             <p id="riskLevel" class="text-4xl font-extrabold"></p>
+                             <p id="riskDescriptor" class="text-sm font-medium mt-1"></p>
+                        </div>
+
+                        <h3 class="text-lg font-bold text-gray-700 mt-6 border-b pb-1">Grades Comparison</h3>
+                        <div id="gradesChartContainer" class="mt-4">
+                            <canvas id="gradesChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div id="adviceContent" class="md:col-span-2">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            Personalized Mentoring Advice
+                        </h3>
+                        <div id="adviceOutput" class="prose prose-indigo max-w-none text-gray-700">
+                             <p class="text-center text-gray-500 italic">Analysis will appear here after submission.</p>
+                        </div>
+
+                        <hr class="my-6 border-gray-200">
+
+                        <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Key Factors Explained
+                        </h3>
+                        <p class="text-sm text-gray-500 mb-2">The chart below shows which student factors most influenced this risk prediction.</p>
+                        <div id="explanationChartContainer" class="mt-4">
+                            <canvas id="explanationChart"></canvas>
+                        </div>
+                        <div id="shapSummary" class="mt-4 text-sm text-gray-700 p-3 bg-indigo-50 rounded-lg border border-indigo-200"></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+<script>
+    // This variable receives the JSON string passed from Flask's render_template in routes.py
+    const FIREBASE_CONFIG = {{ firebase_config|tojson|safe }};
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>

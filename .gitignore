@@ -1,6 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
 # Virtual Environment
 .venv/
+venv/
+ENV/
+env/
 
-# Local secrets
-.streamlit/
+# Environment Variables (CRITICAL - Contains API Keys!)
 .env
+*.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Model files (optional - these are large, consider using Git LFS or exclude)
+*.joblib
+*.pkl
+*.h5
+*.pt
+
+# Logs
+*.log
+
+# Node modules (if any)
+node_modules/
+
+# Firebase
+firebase-debug.log
+.firebase/
+
+# Temporary files
+*.tmp
+*.bak
+*.cache
