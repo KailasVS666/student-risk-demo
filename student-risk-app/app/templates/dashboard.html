@@ -155,8 +155,6 @@
             const snapshot = await db.collection('profiles')
                 .doc(userEmail)
                 .collection('student_data')
-                .orderBy('createdAt', 'desc')
-                .limit(10)
                 .get();
 
             const profilesLoading = document.getElementById('profilesLoading');
@@ -176,10 +174,17 @@
             profilesEmpty.classList.add('hidden');
             profilesList.classList.remove('hidden');
 
-            // Convert to array (already ordered by createdAt desc)
+            // Convert to array and sort by createdAt
             const profiles = [];
             snapshot.forEach(doc => {
                 profiles.push({ id: doc.id, data: doc.data() });
+            });
+
+            // Sort by createdAt (most recent first)
+            profiles.sort((a, b) => {
+                const timeA = a.data.createdAt?.toDate ? a.data.createdAt.toDate().getTime() : 0;
+                const timeB = b.data.createdAt?.toDate ? b.data.createdAt.toDate().getTime() : 0;
+                return timeB - timeA; // Descending order
             });
 
             // Update stats
