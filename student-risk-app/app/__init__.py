@@ -1,7 +1,10 @@
 import os
 import json
 import joblib
+import logging
+from logging.handlers import RotatingFileHandler
 from flask import Flask
+from .limits import limiter
 from dotenv import load_dotenv
 
 # Add these imports for the class
@@ -18,6 +21,32 @@ class ColumnDropper(BaseEstimator, TransformerMixin):
 
 def create_app():
     load_dotenv()
+
+    # --- Structured Logging Setup ---
+    # Console + rotating file logs at INFO level by default
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    logger = logging.getLogger()
+    if not logger.handlers:
+        logger.setLevel(log_level)
+
+        formatter = logging.Formatter(
+            fmt='%(asctime)s %(levelname)s %(name)s - %(message)s',
+            datefmt='%Y-%m-%dT%H:%M:%S'
+        )
+
+        # Console handler
+        ch = logging.StreamHandler()
+        ch.setLevel(log_level)
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+
+        # Rotating file handler (logs/app.log)
+        logs_dir = os.path.join(os.getcwd(), 'logs')
+        os.makedirs(logs_dir, exist_ok=True)
+        fh = RotatingFileHandler(os.path.join(logs_dir, 'app.log'), maxBytes=1_000_000, backupCount=3)
+        fh.setLevel(log_level)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
     
     # --- Validate Critical Environment Variables ---
     required_env_vars = [
@@ -42,31 +71,37 @@ def create_app():
             f"{'='*60}\n"
         )
     
-    print("✓ All required environment variables found.")
+    logging.info("All required environment variables found.")
 
     app = Flask(__name__)
+    # Initialize rate limiter
+    try:
+        limiter.init_app(app)
+        logging.info("Rate limiter initialized (60/min default per IP).")
+    except Exception as e:
+        logging.warning(f"Rate limiter initialization failed: {e}")
 
     # --- Load Machine Learning Models ---
     try:
         app.config['MODEL_PIPELINE'] = joblib.load('early_warning_model_pipeline_tuned.joblib')
         app.config['LABEL_ENCODER'] = joblib.load('label_encoder.joblib')
         app.config['CORE_MODEL'] = joblib.load('student_risk_classifier_tuned.joblib')
-        print("All models loaded successfully.")
+        logging.info("All models loaded successfully.")
     except FileNotFoundError:
-        print("Model files not found! Make sure to run train_model.py first.")
+        logging.warning("Model files not found! Make sure to run train_model.py first.")
         # Exit or handle as appropriate
     except Exception as e:
-        print(f"Error loading models: {e}")
+        logging.exception(f"Error loading models: {e}")
 
     # --- Load Pre-calculated Averages ---
     try:
         with open('grade_averages.json', 'r') as f:
             app.config['GRADE_AVERAGES'] = json.load(f)
-        print("Grade averages calculated and cached.")
+        logging.info("Grade averages calculated and cached.")
     except FileNotFoundError:
         # This is not critical, can be calculated on the fly if needed
         app.config['GRADE_AVERAGES'] = {}
-        print("Grade averages JSON not found. Will calculate on the fly.")
+        logging.info("Grade averages JSON not found. Will calculate on the fly.")
 
     # --- Firebase Configuration ---
     firebase_config = {
@@ -90,6 +125,6 @@ def create_app():
     # Change 'routes' back to 'main' to match the variable in routes.py
     from .routes import main as routes_blueprint  # Corrected import
     app.register_blueprint(routes_blueprint)
-    print("Routes blueprint registered.")
+    logging.info("Routes blueprint registered.")
 
     return app

@@ -7,6 +7,8 @@ from flask import Blueprint, render_template, request, jsonify
 import google.generativeai as genai
 from dotenv import load_dotenv
 import shap
+import logging
+from .limits import limiter
 
 # CRITICAL FIX: Load environment variables from .env file for security
 load_dotenv()
@@ -28,13 +30,14 @@ LABEL_ENCODER_PATH = os.path.join(BASE_DIR, 'label_encoder.joblib')
 pipeline = None
 risk_explainer = None
 label_encoder = None
+logger = logging.getLogger(__name__)
 try:
     pipeline = joblib.load(MODEL_PATH)
     risk_explainer = joblib.load(SHAP_EXPLAINER_PATH) 
     label_encoder = joblib.load(LABEL_ENCODER_PATH)
-    print("Models and Pipeline loaded successfully.")
+    logger.info("Models and Pipeline loaded successfully.")
 except Exception as e:
-    print(f"Error loading models: {e}. Check paths: {MODEL_PATH}")
+    logger.error(f"Error loading models: {e}. Check paths: {MODEL_PATH}")
 
 # Initialize Gemini Model (google-generativeai SDK)
 gemini_model = None
@@ -43,11 +46,11 @@ try:
         genai.configure(api_key=GEMINI_API_KEY)
         # Use gemini-2.5-flash - fast, stable, and widely available
         gemini_model = genai.GenerativeModel('gemini-2.5-flash')
-        print("Gemini model initialized successfully (gemini-2.5-flash).")
+        logger.info("Gemini model initialized successfully (gemini-2.5-flash).")
     else:
-        print("WARNING: GEMINI_API_KEY not found in environment.")
+        logger.warning("GEMINI_API_KEY not found in environment.")
 except Exception as e:
-    print(f"Error initializing Gemini model: {e}")
+    logger.error(f"Error initializing Gemini model: {e}")
 
 
 # --- Helper Functions ---
@@ -176,7 +179,7 @@ def get_shap_feature_importance(preprocessed_data, predicted_class):
         ]
 
     except Exception as e:
-        print(f"SHAP calculation error: {e}")
+        logger.exception(f"SHAP calculation error: {e}")
         # Conservative fallback to avoid breaking the UI
         return [
             {'feature': 'Second Grade (G2)', 'importance': 0.85},
@@ -328,6 +331,7 @@ def index():
 
 
 @main_bp.route('/api/predict', methods=['POST'])
+@limiter.limit("30 per minute")
 def predict_risk():
     """
     Processes student data, makes a prediction, and returns structured analysis.
@@ -362,10 +366,22 @@ def predict_risk():
         risk_mapping = {0: 'High', 1: 'Low', 2: 'Medium'}
         predicted_risk_label = risk_mapping.get(predicted_risk_class, 'Unknown')
         
-        # For display purposes, estimate a G3 grade based on risk category
-        # This is a rough approximation for the UI
-        grade_estimates = {'High': 8, 'Medium': 12, 'Low': 16}
-        predicted_g3 = grade_estimates.get(predicted_risk_label, 10)
+        # Confidence-weighted G3 grade estimate based on model probability
+        try:
+            probabilities = pipeline.predict_proba(preprocessed_df)[0]
+            class_confidence = float(probabilities[int(predicted_risk_class)])
+        except Exception:
+            probabilities = None
+            class_confidence = 0.5  # Safe fallback
+
+        # Grade ranges per risk class: 0=High,1=Low,2=Medium
+        grade_ranges = {
+            0: (0, 9),    # High risk
+            1: (14, 20),  # Low risk
+            2: (10, 13)   # Medium risk
+        }
+        lo, hi = grade_ranges.get(int(predicted_risk_class), (10, 12))
+        predicted_g3 = int(round(lo + (hi - lo) * class_confidence))
 
         # 3. Determine Risk Category and Descriptor
         risk_category = predicted_risk_label.lower()
@@ -383,16 +399,27 @@ def predict_risk():
         mentoring_advice = generate_mentoring_advice(data, predicted_g3, risk_category, top_features)
 
         # 6. Structured JSON Response (for 10/10 frontend consumption)
+        # Include probabilities and confidence for UI display
+        proba_payload = None
+        if probabilities is not None:
+            # Map to readable labels using model class mapping
+            proba_map = {0: 'High', 1: 'Low', 2: 'Medium'}
+            proba_payload = {
+                proba_map[i]: float(probabilities[i]) for i in range(len(probabilities)) if i in proba_map
+            }
+
         return jsonify({
             "prediction": predicted_g3,
-            "risk_category": risk_category, 
+            "risk_category": risk_category,
             "risk_descriptor": risk_descriptor,
-            "shap_values": top_features, 
+            "confidence": class_confidence,
+            "probabilities": proba_payload,
+            "shap_values": top_features,
             "mentoring_advice": mentoring_advice
         })
 
     except Exception as e:
-        print(f"Prediction route error: {e}")
+        logger.exception(f"Prediction route error: {e}")
         return jsonify({"error": f"An unexpected error occurred during analysis: {e}"}), 500
 
 # Alias for blueprint to match app.__init__.py import

@@ -145,6 +145,9 @@ updateWizard();
 // Placeholder for chart instances to allow easy destruction/update
 let explanationChartInstance = null;
 let gradesChartInstance = null;
+let probaChartInstance = null;
+// Keep the raw SHAP values from the backend so we can re-render when toggling sensitive features
+let lastShapValuesRaw = null;
 
 // The main function to handle prediction and advice generation
 document.getElementById('generateAdviceBtn').addEventListener('click', async () => {
@@ -181,13 +184,18 @@ document.getElementById('generateAdviceBtn').addEventListener('click', async () 
         showToast('Analysis complete!', 'success');
 
         // 5. Update Risk Badge (CRITICAL UX IMPROVEMENT)
-        updateRiskBadge(data.risk_category, data.prediction); // Assumes risk_category is 'low', 'medium', or 'high'
+        updateRiskBadge(data.risk_category, data.prediction, data.confidence); // risk_category is 'low'|'medium'|'high'
 
         // 6. Render Advice (Structure the output for 10/10 UX)
         renderAdvice(data.mentoring_advice); // This should handle structured/markdown advice
 
         // 7. Render Charts
-        renderExplanationChart(data.shap_values);
+        if (data.probabilities) {
+            renderProbaChart(data.probabilities);
+        }
+        // Save raw SHAP values and render with current toggle state
+        lastShapValuesRaw = data.shap_values || [];
+        renderExplanationChart(lastShapValuesRaw);
         renderGradesChart(formData.G1, formData.G2, data.prediction); // Pass G1, G2, and final prediction
 
     } catch (error) {
@@ -241,10 +249,11 @@ function gatherFormData() {
  * @param {string} category - 'low', 'medium', or 'high'.
  * @param {number} finalGrade - The predicted final grade (G3).
  */
-function updateRiskBadge(category, finalGrade) {
+function updateRiskBadge(category, finalGrade, confidence) {
     const badge = document.getElementById('riskLevelBadge');
     const levelText = document.getElementById('riskLevel');
     const descriptor = document.getElementById('riskDescriptor');
+    const confText = document.getElementById('riskConfidence');
 
     // Reset classes
     badge.className = 'p-4 rounded-xl shadow-lg text-center transition duration-500';
@@ -266,6 +275,11 @@ function updateRiskBadge(category, finalGrade) {
             levelText.textContent = 'High Risk';
             descriptor.textContent = `Predicted Final Grade (G3): ${finalGrade}`;
             break;
+    }
+
+    if (confText) {
+        const pct = typeof confidence === 'number' ? Math.round(confidence * 100) : null;
+        confText.textContent = pct !== null ? `Model confidence: ${pct}% for this risk class` : '';
     }
 }
 
@@ -301,10 +315,25 @@ function renderExplanationChart(shapValues) {
     if (explanationChartInstance) {
         explanationChartInstance.destroy();
     }
-    
+
+    // Filter sensitive features based on toggle state
+    const toggle = document.getElementById('toggleSensitive');
+    const biasNotice = document.getElementById('biasNotice');
+    const showSensitive = toggle ? toggle.checked : false;
+    const filtered = filterSensitiveFeatures(shapValues, showSensitive);
+
+    // Show a notice if sensitive features were hidden and at least one was filtered out
+    if (biasNotice) {
+        const filteredOutCount = shapValues.length - filtered.length;
+        biasNotice.style.display = (!showSensitive && filteredOutCount > 0) ? 'block' : 'none';
+    }
+
+    // Use filtered values for charting
+    const valuesForChart = filtered.length > 0 ? filtered : shapValues;
+
     // Assuming shapValues is an array of { feature: string, importance: number }
-    const features = shapValues.map(f => f.feature);
-    const importance = shapValues.map(f => f.importance);
+    const features = valuesForChart.map(f => f.feature);
+    const importance = valuesForChart.map(f => f.importance);
     const backgroundColors = importance.map(i => i > 0 ? '#10B981' : '#EF4444'); // Green for positive impact, Red for negative
 
     const ctx = document.getElementById('explanationChart').getContext('2d');
@@ -351,10 +380,29 @@ function renderExplanationChart(shapValues) {
     });
 
     // Simple textual summary (UX enhancement)
-    const topFeature = shapValues[0].feature;
-    const topImpact = shapValues[0].importance > 0 ? 'increase' : 'decrease';
-    document.getElementById('shapSummary').textContent = 
-        `Summary: The strongest factor influencing this prediction was the student's **${topFeature}**, which is associated with a predicted ${topImpact} in risk level.`;
+    const summaryEl = document.getElementById('shapSummary');
+    if (valuesForChart.length > 0) {
+        const topFeature = valuesForChart[0].feature;
+        const topImpact = valuesForChart[0].importance > 0 ? 'increase' : 'decrease';
+        summaryEl.textContent = `Summary: The strongest factor influencing this prediction was the student's ${topFeature}, which is associated with a predicted ${topImpact} in risk level.`;
+    } else {
+        summaryEl.textContent = 'Summary: No non-sensitive factors were among the top contributors for this prediction.';
+    }
+}
+
+/**
+ * Filters out sensitive features from SHAP results when showSensitive is false.
+ * Sensitivity heuristic matches on common attribute names in the display string.
+ * @param {Array<{feature:string, importance:number}>} shapValues
+ * @param {boolean} showSensitive
+ */
+function filterSensitiveFeatures(shapValues, showSensitive) {
+    if (showSensitive) return shapValues || [];
+    const sensitiveKeywords = ['sex', 'gender', 'age', 'guardian', 'address', 'famsize', 'pstatus', 'mjob', 'fjob', 'romantic'];
+    return (shapValues || []).filter(item => {
+        const name = (item.feature || '').toString().toLowerCase();
+        return !sensitiveKeywords.some(kw => name.includes(kw));
+    });
 }
 
 /**
@@ -394,6 +442,43 @@ function renderGradesChart(G1, G2, G3) {
                 legend: { display: false },
                 tooltip: { mode: 'index', intersect: false }
             }
+        }
+    });
+}
+
+/**
+ * Renders a small probability bar chart for classes.
+ * @param {object} probMap - e.g., { High: 0.12, Medium: 0.68, Low: 0.20 }
+ */
+function renderProbaChart(probMap) {
+    if (probaChartInstance) {
+        probaChartInstance.destroy();
+    }
+
+    const labelsOrder = ['High', 'Medium', 'Low'];
+    const dataVals = labelsOrder.map(k => (probMap[k] ?? 0) * 100);
+    const colors = labelsOrder.map(k => k === 'High' ? '#EF4444' : k === 'Medium' ? '#F59E0B' : '#10B981');
+
+    const ctx = document.getElementById('probaChart').getContext('2d');
+    probaChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labelsOrder,
+            datasets: [{
+                label: 'Class Probability (%)',
+                data: dataVals,
+                backgroundColor: colors,
+                borderColor: colors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            scales: {
+                x: { beginAtZero: true, max: 100, ticks: { callback: (v) => v + '%' } }
+            },
+            plugins: { legend: { display: false } }
         }
     });
 }
@@ -645,3 +730,17 @@ function renderGradesChart(G1, G2, G3) {
     });
 
 })();
+
+// =========================================================================
+// SENSITIVE FEATURE TOGGLE BINDING
+// =========================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    const toggle = document.getElementById('toggleSensitive');
+    if (toggle) {
+        toggle.addEventListener('change', () => {
+            if (lastShapValuesRaw) {
+                renderExplanationChart(lastShapValuesRaw);
+            }
+        });
+    }
+});
