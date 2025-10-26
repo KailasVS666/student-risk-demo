@@ -63,17 +63,83 @@ document.querySelectorAll('input[type="range"]').forEach(input => {
     });
 });
 
+// ---- Validation helpers ----
+function addFieldError(inputEl, message) {
+    if (!inputEl) return;
+    inputEl.classList.add('ring-2', 'ring-red-300', 'border-red-500');
+    // if an error element already exists, update it; else create
+    const key = `error-for-${inputEl.id}`;
+    let err = document.getElementById(key);
+    if (!err) {
+        err = document.createElement('p');
+        err.id = key;
+        err.className = 'text-xs text-red-600 mt-1';
+        // insert right after the input element
+        inputEl.parentElement.appendChild(err);
+    }
+    err.textContent = message || 'This field is required';
+}
+
+function clearFieldError(inputEl) {
+    if (!inputEl) return;
+    inputEl.classList.remove('ring-2', 'ring-red-300', 'border-red-500');
+    const key = `error-for-${inputEl.id}`;
+    const err = document.getElementById(key);
+    if (err) err.remove();
+}
+
+function clearAllErrorsInStep(stepIndex) {
+    const stepEl = formSteps[stepIndex];
+    if (!stepEl) return;
+    stepEl.querySelectorAll('input, select, textarea').forEach(el => clearFieldError(el));
+}
+
 /**
- * Client-side validation for the current step.
- * @returns {boolean} True if validation passes.
+ * Client-side validation for the current step: checks required fields exist.
+ * Returns true if validation passes; otherwise annotates fields and returns false.
  */
 function validateStep(step) {
+    const requiredByStep = {
+        0: ['school','sex','age','address','famsize','Pstatus','famrel'],
+        1: ['Medu','Fedu','Mjob','Fjob','studytime','reason','guardian','schoolsup','famsup','paid','higher'],
+        2: ['activities','nursery','internet','romantic','traveltime','freetime','goout','Dalc','Walc','health','absences','failures','G1','G2']
+    };
+
+    clearAllErrorsInStep(step);
+
+    const ids = requiredByStep[step] || [];
+    let firstInvalid = null;
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        let valid = true;
+        if (el.tagName === 'SELECT' || el.type === 'text' || el.type === 'textarea') {
+            valid = (el.value ?? '').toString().trim().length > 0;
+        } else if (el.type === 'range' || el.type === 'number') {
+            valid = (el.value ?? '') !== '' && !Number.isNaN(Number(el.value));
+        } else {
+            valid = (el.value ?? '') !== '';
+        }
+        if (!valid) {
+            addFieldError(el, 'Please provide a value');
+            if (!firstInvalid) firstInvalid = el;
+        }
+    });
+
+    if (firstInvalid) {
+        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToast('Please complete the highlighted fields before continuing.', 'error');
+        return false;
+    }
+
+    // Optional: specific check on step 2 for G1/G2 minimum sensible values
     if (step === 2) {
-        // Check if G1 and G2 have non-zero values (a minimum validation)
-        const g1 = document.getElementById('G1').value;
-        const g2 = document.getElementById('G2').value;
-        if (g1 === '0' || g2 === '0') {
-            showToast('Please enter non-zero values for First Grade (G1) and Second Grade (G2).', 'error');
+        const g1 = Number(document.getElementById('G1')?.value ?? 0);
+        const g2 = Number(document.getElementById('G2')?.value ?? 0);
+        if (g1 < 0 || g2 < 0) {
+            addFieldError(document.getElementById('G1'), 'Must be >= 0');
+            addFieldError(document.getElementById('G2'), 'Must be >= 0');
+            showToast('Grades must be zero or positive.', 'error');
             return false;
         }
     }
@@ -121,10 +187,9 @@ function updateWizard() {
 }
 
 nextBtn.addEventListener('click', () => {
-    if (validateStep(currentStep)) {
-        currentStep++;
-        updateWizard();
-    }
+    if (!validateStep(currentStep)) return;
+    currentStep++;
+    updateWizard();
 });
 
 prevBtn.addEventListener('click', () => {
@@ -136,6 +201,12 @@ prevBtn.addEventListener('click', () => {
 
 // Initialize the wizard on load
 updateWizard();
+
+// Clear errors when user edits fields
+document.querySelectorAll('#inputForm input, #inputForm select, #inputForm textarea').forEach(el => {
+    el.addEventListener('input', () => clearFieldError(el));
+    el.addEventListener('change', () => clearFieldError(el));
+});
 
 
 // =========================================================================
@@ -601,6 +672,7 @@ function renderProbaChart(probMap) {
     // --- Profile Save/Load Handlers (Now use the correct userEmail) ---
 
     document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+        const saveBtn = document.getElementById('saveProfileBtn');
         if (!userEmail) {
             showToast('You must be logged in to save a profile.', 'error');
             return;
@@ -615,22 +687,53 @@ function renderProbaChart(probMap) {
         const profileData = gatherFormData();
 
         try {
+            // UI: prevent double submits
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.dataset.originalText = saveBtn.innerText; saveBtn.innerText = 'Saving...'; }
             // This now correctly uses the logged-in user's email
-            await db.collection('profiles').doc(userEmail).collection('student_data').doc(profileName).set(profileData);
-            showToast(`Profile "${profileName}" saved successfully!`, 'success');
+            const docRef = db.collection('profiles')
+                .doc(userEmail)
+                .collection('student_data')
+                .doc(profileName);
+
+            const existing = await docRef.get();
+            if (existing.exists) {
+                await docRef.set({
+                    ...profileData,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } else {
+                await docRef.set({
+                    ...profileData,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            }
+            showToast(`Profile \"${profileName}\" saved successfully!`, 'success');
             loadProfiles(); // Refresh the dropdown
+            window.__formDirty = false; // reset unsaved changes flag
         } catch (error) {
             console.error("Error saving profile: ", error);
             showToast('Error saving profile.', 'error');
+        } finally {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = saveBtn.dataset.originalText || 'Save Profile'; }
         }
     });
 
-    document.getElementById('loadProfileBtn').addEventListener('click', () => {
+    document.getElementById('loadProfileBtn').addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
         const selectedProfileName = document.getElementById('loadProfileSelect').value;
-        if (selectedProfileName) {
-            loadProfile(selectedProfileName);
-        } else {
+        if (!selectedProfileName) {
             showToast('Please select a profile to load.', 'info');
+            return;
+        }
+        try {
+            btn.disabled = true;
+            btn.dataset.originalText = btn.innerText;
+            btn.innerText = 'Loading...';
+            await loadProfile(selectedProfileName);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = btn.dataset.originalText || 'Load Profile';
         }
     });
 
@@ -742,5 +845,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderExplanationChart(lastShapValuesRaw);
             }
         });
+    }
+    // Unsaved changes guard for assessment form
+    const inputForm = document.getElementById('inputForm');
+    if (inputForm) {
+        window.__formDirty = false;
+        inputForm.addEventListener('input', () => { window.__formDirty = true; });
+        window.addEventListener('beforeunload', (e) => {
+            if (window.__formDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+        const submitBtn = document.getElementById('generateAdviceBtn');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', () => { window.__formDirty = false; });
+        }
+        const clearBtn = document.getElementById('clearFormBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => { window.__formDirty = false; });
+        }
     }
 });

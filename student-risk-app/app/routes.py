@@ -3,7 +3,7 @@ import json
 import joblib
 import numpy as np
 import pandas as pd
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
 import google.generativeai as genai
 from dotenv import load_dotenv
 import shap
@@ -316,18 +316,8 @@ def validate_student_data(data):
 
 @main_bp.route('/')
 def index():
-    """Renders the main application page."""
-    # CRITICAL FIX: Pass Firebase config using os.getenv()
-    firebase_config = {
-        'apiKey': os.getenv("FIREBASE_API_KEY"),
-        'authDomain': os.getenv("FIREBASE_AUTH_DOMAIN"),
-        'projectId': os.getenv("FIREBASE_PROJECT_ID"),
-        'storageBucket': os.getenv("FIREBASE_STORAGE_BUCKET"),
-        'messagingSenderId': os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
-        'appId': os.getenv("FIREBASE_APP_ID"),
-        'measurementId': os.getenv("FIREBASE_MEASUREMENT_ID")
-    }
-    return render_template('index.html', firebase_config=json.dumps(firebase_config))
+    """Redirect root to login page"""
+    return redirect('/login')
 
 
 @main_bp.route('/api/predict', methods=['POST'])

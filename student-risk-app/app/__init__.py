@@ -118,13 +118,24 @@ def create_app():
     # --- Gemini Configuration ---
     app.config['GEMINI_API_KEY'] = os.getenv("GEMINI_API_KEY")
 
-    #
-    # >>>>> THIS IS THE CORRECT FIX <<<<<
-    #
     # --- Register Blueprints (Routes) ---
-    # Change 'routes' back to 'main' to match the variable in routes.py
-    from .routes import main as routes_blueprint  # Corrected import
-    app.register_blueprint(routes_blueprint)
-    logging.info("Routes blueprint registered.")
+    # Import original routes.py file (for API endpoints)
+    from .routes import main_bp as api_routes_bp
+    app.register_blueprint(api_routes_bp)
+    logging.info("API routes blueprint registered.")
+    
+    # Import new modular route blueprints from views/ folder  
+    from .views.auth import auth_bp
+    from .views.dashboard import dashboard_bp
+    from .views.assessment import assessment_bp
+    from .views.history import history_bp
+    from .views.other import other_bp
+    
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(assessment_bp)
+    app.register_blueprint(history_bp)
+    app.register_blueprint(other_bp)
+    logging.info("All route blueprints registered successfully.")
 
     return app
