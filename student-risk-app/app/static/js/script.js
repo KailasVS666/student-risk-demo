@@ -591,11 +591,14 @@ function renderProbaChart(probMap) {
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // --- Get UI Elements ---
+    // --- Get UI Elements (with null checks for pages that don't have auth UI) ---
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app');
     const userEmailSpan = document.getElementById('user-email');
     const authError = document.getElementById('auth-error');
+    const loginBtn = document.getElementById('loginBtn');
+    const signupBtn = document.getElementById('signupBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
 
     // --- Auth State Variable ---
     let userEmail = null; // This will be set to the *actual* logged-in user's email
@@ -606,11 +609,11 @@ function renderProbaChart(probMap) {
         if (user) {
             // User is SIGNED IN
             userEmail = user.email;
-            userEmailSpan.textContent = userEmail;
+            if (userEmailSpan) userEmailSpan.textContent = userEmail;
             
-            // Show the app, hide the login form
-            appContainer.classList.remove('hidden');
-            authContainer.classList.add('hidden');
+            // Show the app, hide the login form (only if these elements exist)
+            if (appContainer) appContainer.classList.remove('hidden');
+            if (authContainer) authContainer.classList.add('hidden');
             
             // IMPORTANT: Load profiles *after* we know who the user is
             loadProfiles();
@@ -618,67 +621,74 @@ function renderProbaChart(probMap) {
         } else {
             // User is SIGNED OUT
             userEmail = null;
-            userEmailSpan.textContent = '';
+            if (userEmailSpan) userEmailSpan.textContent = '';
             
-            // Show the login form, hide the app
-            appContainer.classList.add('hidden');
-            authContainer.classList.remove('hidden');
+            // Show the login form, hide the app (only if these elements exist)
+            if (appContainer) appContainer.classList.add('hidden');
+            if (authContainer) authContainer.classList.remove('hidden');
         }
     });
 
-    // --- Auth Form Listeners ---
-    document.getElementById('loginBtn').addEventListener('click', () => {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        authError.textContent = ''; // Clear previous errors
+    // --- Auth Form Listeners (only attach if elements exist) ---
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if (authError) authError.textContent = ''; // Clear previous errors
 
-        auth.signInWithEmailAndPassword(email, password)
-            .then(userCredential => {
-                showToast('Logged in successfully!', 'success');
-                // onAuthStateChanged will handle hiding the form
-            })
-            .catch(error => {
-                authError.textContent = error.message;
-            });
-    });
+            auth.signInWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    showToast('Logged in successfully!', 'success');
+                    // onAuthStateChanged will handle hiding the form
+                })
+                .catch(error => {
+                    if (authError) authError.textContent = error.message;
+                });
+        });
+    }
 
-    document.getElementById('signupBtn').addEventListener('click', () => {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        authError.textContent = ''; // Clear previous errors
+    if (signupBtn) {
+        signupBtn.addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if (authError) authError.textContent = ''; // Clear previous errors
 
-        auth.createUserWithEmailAndPassword(email, password)
-            .then(userCredential => {
-                showToast('Account created! You are now logged in.', 'success');
-                // onAuthStateChanged will handle hiding the form
-            })
-            .catch(error => {
-                authError.textContent = error.message;
-            });
-    });
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    showToast('Account created! You are now logged in.', 'success');
+                    // onAuthStateChanged will handle hiding the form
+                })
+                .catch(error => {
+                    if (authError) authError.textContent = error.message;
+                });
+        });
+    }
 
     // --- Logout Button ---
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-        auth.signOut().then(() => {
-            showToast('Logged out successfully.', 'info');
-            // onAuthStateChanged will automatically show the login screen
-        }).catch((error) => {
-            console.error("Logout Error:", error);
-            showToast('Error logging out.', 'error');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut().then(() => {
+                showToast('Logged out successfully.', 'info');
+                // onAuthStateChanged will automatically show the login screen
+            }).catch((error) => {
+                console.error("Logout Error:", error);
+                showToast('Error logging out.', 'error');
+            });
         });
-    });
+    }
 
 
     // --- Profile Save/Load Handlers (Now use the correct userEmail) ---
-
-    document.getElementById('saveProfileBtn').addEventListener('click', async () => {
-        const saveBtn = document.getElementById('saveProfileBtn');
-        if (!userEmail) {
-            showToast('You must be logged in to save a profile.', 'error');
-            return;
-        }
-        
-        const profileName = document.getElementById('profileName').value.trim();
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+    if (saveProfileBtn) {
+        saveProfileBtn.addEventListener('click', async () => {
+            const saveBtn = document.getElementById('saveProfileBtn');
+            if (!userEmail) {
+                showToast('You must be logged in to save a profile.', 'error');
+                return;
+            }
+            
+            const profileName = document.getElementById('profileName').value.trim();
         if (!profileName) {
             showToast('Please enter a name for the profile.', 'error');
             return;
@@ -717,25 +727,29 @@ function renderProbaChart(probMap) {
         } finally {
             if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = saveBtn.dataset.originalText || 'Save Profile'; }
         }
-    });
+        });
+    }
 
-    document.getElementById('loadProfileBtn').addEventListener('click', async (e) => {
-        const btn = e.currentTarget;
-        const selectedProfileName = document.getElementById('loadProfileSelect').value;
-        if (!selectedProfileName) {
-            showToast('Please select a profile to load.', 'info');
-            return;
-        }
-        try {
-            btn.disabled = true;
-            btn.dataset.originalText = btn.innerText;
-            btn.innerText = 'Loading...';
-            await loadProfile(selectedProfileName);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = btn.dataset.originalText || 'Load Profile';
-        }
-    });
+    const loadProfileBtn = document.getElementById('loadProfileBtn');
+    if (loadProfileBtn) {
+        loadProfileBtn.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const selectedProfileName = document.getElementById('loadProfileSelect').value;
+            if (!selectedProfileName) {
+                showToast('Please select a profile to load.', 'info');
+                return;
+            }
+            try {
+                btn.disabled = true;
+                btn.dataset.originalText = btn.innerText;
+                btn.innerText = 'Loading...';
+                await loadProfile(selectedProfileName);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = btn.dataset.originalText || 'Load Profile';
+            }
+        });
+    }
 
 
     /**
@@ -811,26 +825,31 @@ function renderProbaChart(probMap) {
     }
 
     // --- Misc Button Wrappers ---
-
-    document.getElementById('clearFormBtn').addEventListener('click', () => {
-        document.querySelectorAll('#inputForm select').forEach(select => select.selectedIndex = 0);
-        document.querySelectorAll('#inputForm input[type="range"]').forEach(range => {
-            range.value = range.getAttribute('value'); // Reset to default
-            const valueSpan = document.getElementById(range.id + 'Value');
-            if (valueSpan) valueSpan.textContent = range.value;
+    const clearFormBtn = document.getElementById('clearFormBtn');
+    if (clearFormBtn) {
+        clearFormBtn.addEventListener('click', () => {
+            document.querySelectorAll('#inputForm select').forEach(select => select.selectedIndex = 0);
+            document.querySelectorAll('#inputForm input[type="range"]').forEach(range => {
+                range.value = range.getAttribute('value'); // Reset to default
+                const valueSpan = document.getElementById(range.id + 'Value');
+                if (valueSpan) valueSpan.textContent = range.value;
+            });
+            document.getElementById('customPrompt').value = '';
+            document.getElementById('profileName').value = 'new_student';
+            showToast('Form cleared.', 'info');
         });
-        document.getElementById('customPrompt').value = '';
-        document.getElementById('profileName').value = 'new_student';
-        showToast('Form cleared.', 'info');
-    });
+    }
 
-    document.getElementById('copyAdviceBtn').addEventListener('click', () => {
-        const adviceText = document.getElementById('adviceOutput').innerText;
-        if (adviceText) {
-            navigator.clipboard.writeText(adviceText);
-            showToast('Advice copied to clipboard!', 'info');
-        }
-    });
+    const copyAdviceBtn = document.getElementById('copyAdviceBtn');
+    if (copyAdviceBtn) {
+        copyAdviceBtn.addEventListener('click', () => {
+            const adviceText = document.getElementById('adviceOutput').innerText;
+            if (adviceText) {
+                navigator.clipboard.writeText(adviceText);
+                showToast('Advice copied to clipboard!', 'info');
+            }
+        });
+    }
 
 })();
 
