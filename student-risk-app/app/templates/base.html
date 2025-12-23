@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Student Mentor{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    {% block extra_head %}{% endblock %}
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .nav-link {
+            @apply text-gray-600 hover:text-indigo-600 transition-colors duration-200 font-medium;
+        }
+        
+        .nav-link.active {
+            @apply text-indigo-600 border-b-2 border-indigo-600 pb-1;
+        }
+        
+        .btn-icon {
+            @apply p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200;
+        }
+        
+        .mobile-menu {
+            @apply md:hidden absolute top-full left-0 right-0 bg-white shadow-lg rounded-b-lg p-4 space-y-3;
+        }
+        
+        .footer-link {
+            @apply text-gray-400 hover:text-white transition-colors duration-200;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 sm:px-6 py-4">
+            <div class="flex justify-between items-center">
+                <!-- Logo & Brand -->
+                <div class="flex items-center space-x-8">
+                    <a href="/dashboard" class="flex items-center space-x-2">
+                        <svg class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                        <span class="text-xl font-bold text-indigo-600">AI Mentor</span>
+                    </a>
+                    
+                    <!-- Desktop Navigation Links -->
+                    <div class="hidden md:flex space-x-6">
+                        <a href="/dashboard" class="nav-link" id="nav-dashboard">Dashboard</a>
+                        <a href="/assessment" class="nav-link" id="nav-assessment">New Assessment</a>
+                        <a href="/history" class="nav-link" id="nav-history">History</a>
+                        <a href="/about" class="nav-link" id="nav-about">About</a>
+                    </div>
+                </div>
+                
+                <!-- User Actions -->
+                <div class="flex items-center space-x-4">
+                    <span class="hidden sm:block text-sm text-gray-600" id="user-email-nav"></span>
+                    <a href="/settings" class="btn-icon" title="Settings">
+                        <svg class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </a>
+                    <button id="logoutBtn" class="hidden md:block px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium">
+                        Logout
+                    </button>
+                    
+                    <!-- Mobile Menu Button -->
+                    <button id="mobileMenuBtn" class="md:hidden btn-icon">
+                        <svg class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="mobile-menu hidden">
+                <a href="/dashboard" class="block py-2 text-gray-700 hover:text-indigo-600">Dashboard</a>
+                <a href="/assessment" class="block py-2 text-gray-700 hover:text-indigo-600">New Assessment</a>
+                <a href="/history" class="block py-2 text-gray-700 hover:text-indigo-600">History</a>
+                <a href="/about" class="block py-2 text-gray-700 hover:text-indigo-600">About</a>
+                <button id="logoutBtnMobile" class="w-full mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Email Verification Banner (shown when user not verified) -->
+    <div id="emailVerifyBanner" class="hidden bg-yellow-50 border-b border-yellow-200">
+        <div class="container mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+                <svg class="h-5 w-5 text-yellow-600 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 9v2m0 0v2m0-2h2m-2 0H10m10 2a8 8 0 11-16 0 8 8 0 0116 0z"/></svg>
+                <p class="text-sm text-yellow-800">
+                    Please verify your email address to unlock all features. Check your inbox for a verification email.
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="resendVerificationBtn" class="px-3 py-1.5 bg-yellow-600 text-white text-sm rounded hover:bg-yellow-700">Resend email</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 sm:px-6 py-6 lg:py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-auto">
+        <div class="container mx-auto px-4 sm:px-6 py-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- About -->
+                <div>
+                    <h3 class="text-lg font-bold mb-3">AI Student Mentor</h3>
+                    <p class="text-gray-400 text-sm">
+                        AI-powered personalized student mentoring using machine learning 
+                        and large language models for risk-based action routing.
+                    </p>
+                </div>
+                
+                <!-- Quick Links -->
+                <div>
+                    <h3 class="text-lg font-bold mb-3">Quick Links</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="/dashboard" class="footer-link">Dashboard</a></li>
+                        <li><a href="/assessment" class="footer-link">New Assessment</a></li>
+                        <li><a href="/history" class="footer-link">History</a></li>
+                        <li><a href="/about" class="footer-link">About & Help</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Contact & Tech -->
+                <div>
+                    <h3 class="text-lg font-bold mb-3">Technology</h3>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <span class="px-2 py-1 bg-gray-700 rounded">Flask</span>
+                        <span class="px-2 py-1 bg-gray-700 rounded">LightGBM</span>
+                        <span class="px-2 py-1 bg-gray-700 rounded">Gemini AI</span>
+                        <span class="px-2 py-1 bg-gray-700 rounded">SHAP</span>
+                        <span class="px-2 py-1 bg-gray-700 rounded">Firebase</span>
+                    </div>
+                    <div class="mt-4">
+                        <a href="https://github.com/KailasVS666/student-risk-demo" target="_blank" class="footer-link text-sm">
+                            <svg class="inline h-5 w-5 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                            View on GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Copyright -->
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center text-sm text-gray-400">
+                <p>&copy; 2025 AI Student Mentor. Built with ❤️ for educational purposes.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+    <!-- Base JavaScript -->
+    <script>
+        // Mobile menu toggle
+        document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        });
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            
+            toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.addEventListener('transitionend', () => toast.remove());
+            }, 3000);
+        }
+
+        // Highlight active nav link
+        const currentPath = window.location.pathname;
+        const navLinks = {
+            '/dashboard': 'nav-dashboard',
+            '/assessment': 'nav-assessment',
+            '/history': 'nav-history',
+            '/about': 'nav-about'
+        };
+        
+        Object.keys(navLinks).forEach(path => {
+            if (currentPath.startsWith(path)) {
+                const link = document.getElementById(navLinks[path]);
+                if (link) link.classList.add('active');
+            }
+        });
+
+        // Firebase config placeholder (will be injected by each page)
+        const FIREBASE_CONFIG = {{ firebase_config|tojson|safe if firebase_config else '{}' }};
+
+        // Initialize Firebase (once) and wire basic auth UX: nav email, logout, verify banner
+        (function() {
+            if (typeof firebase === 'undefined' || !FIREBASE_CONFIG || !FIREBASE_CONFIG.projectId) {
+                return;
+            }
+            if (!firebase.apps.length) {
+                firebase.initializeApp(FIREBASE_CONFIG);
+            }
+            const auth = firebase.auth();
+
+            const userEmailNav = document.getElementById('user-email-nav');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const logoutBtnMobile = document.getElementById('logoutBtnMobile');
+            const verifyBanner = document.getElementById('emailVerifyBanner');
+            const resendBtn = document.getElementById('resendVerificationBtn');
+
+            function setLogoutHandlers(user) {
+                const handler = async () => {
+                    const doLogout = confirm('Are you sure you want to log out?');
+                    if (!doLogout) return;
+                    const origDesk = logoutBtn ? logoutBtn.textContent : '';
+                    const origMob = logoutBtnMobile ? logoutBtnMobile.textContent : '';
+                    try {
+                        if (logoutBtn) { logoutBtn.disabled = true; logoutBtn.textContent = 'Logging out...'; }
+                        if (logoutBtnMobile) { logoutBtnMobile.disabled = true; logoutBtnMobile.textContent = 'Logging out...'; }
+                        await auth.signOut();
+                    } catch (e) {
+                        console.error(e);
+                        if (typeof showToast === 'function') showToast('Error logging out', 'error');
+                    } finally {
+                        // In case we remain on the page
+                        if (logoutBtn) { logoutBtn.disabled = false; logoutBtn.textContent = origDesk || 'Logout'; }
+                        if (logoutBtnMobile) { logoutBtnMobile.disabled = false; logoutBtnMobile.textContent = origMob || 'Logout'; }
+                    }
+                };
+                if (logoutBtn) {
+                    logoutBtn.onclick = handler;
+                    logoutBtn.classList.toggle('hidden', !user);
+                }
+                if (logoutBtnMobile) {
+                    logoutBtnMobile.onclick = handler;
+                }
+            }
+
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    if (userEmailNav) userEmailNav.textContent = user.email || '';
+                    setLogoutHandlers(user);
+                    try { await user.reload(); } catch {}
+                    const isVerified = (auth.currentUser && auth.currentUser.emailVerified) || false;
+                    if (verifyBanner) verifyBanner.classList.toggle('hidden', isVerified);
+                    if (resendBtn) {
+                        resendBtn.disabled = false;
+                        resendBtn.textContent = 'Resend email';
+                        resendBtn.onclick = async () => {
+                            resendBtn.disabled = true;
+                            const original = resendBtn.textContent;
+                            resendBtn.textContent = 'Sending...';
+                            try {
+                                await auth.currentUser.sendEmailVerification();
+                                if (typeof showToast === 'function') {
+                                    showToast('Verification email sent.', 'info');
+                                }
+                            } catch (err) {
+                                console.error('Verification email error:', err);
+                                if (typeof showToast === 'function') {
+                                    showToast(err.message || 'Could not send verification email', 'error');
+                                }
+                            } finally {
+                                resendBtn.disabled = false;
+                                resendBtn.textContent = original;
+                            }
+                        };
+                    }
+                } else {
+                    if (userEmailNav) userEmailNav.textContent = '';
+                    setLogoutHandlers(null);
+                    if (verifyBanner) verifyBanner.classList.add('hidden');
+                }
+            });
+        })();
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+
+</body>
+</html>

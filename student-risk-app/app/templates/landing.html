@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Student Mentor - Early Warning System for At-Risk Students</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .hero-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .tech-badge {
+            transition: all 0.3s ease;
+        }
+        .tech-badge:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <svg class="w-8 h-8 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                    <span class="text-xl font-bold text-gray-800">AI Student Mentor</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/login" class="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Login</a>
+                    <a href="/signup" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">Sign Up</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-gradient text-white pt-32 pb-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+                    Predict & Prevent<br/>Student Academic Failure
+                </h1>
+                <p class="text-xl md:text-2xl mb-8 text-indigo-100 max-w-3xl mx-auto">
+                    AI-powered early warning system that identifies at-risk students and provides personalized mentoring advice
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center gap-4">
+                    <a href="/signup" class="px-8 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl">
+                        Get Started Free
+                    </a>
+                    <a href="/about" class="px-8 py-4 bg-indigo-700 text-white rounded-lg font-bold text-lg hover:bg-indigo-800 transition-all border-2 border-white">
+                        Learn More
+                    </a>
+                </div>
+                
+                <!-- Demo Stats -->
+                <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                    <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                        <div class="text-4xl font-bold mb-2">85%+</div>
+                        <div class="text-indigo-100">Prediction Accuracy</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                        <div class="text-4xl font-bold mb-2">30+</div>
+                        <div class="text-indigo-100">Features Analyzed</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                        <div class="text-4xl font-bold mb-2">100%</div>
+                        <div class="text-indigo-100">Free to Use</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">Powerful Features</h2>
+                <p class="text-xl text-gray-600">Everything you need to support student success</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="feature-card bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-8 transition-all duration-300">
+                    <div class="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-brain text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">ML-Powered Predictions</h3>
+                    <p class="text-gray-600">
+                        LightGBM model trained on 30+ features predicts student risk levels with 85%+ accuracy
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-card bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-8 transition-all duration-300">
+                    <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-chart-bar text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">SHAP Explainability</h3>
+                    <p class="text-gray-600">
+                        Transparent AI decisions with visual explanations of which factors most influence predictions
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-card bg-gradient-to-br from-pink-50 to-red-50 rounded-xl p-8 transition-all duration-300">
+                    <div class="w-16 h-16 bg-pink-600 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-robot text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">AI Mentoring Advice</h3>
+                    <p class="text-gray-600">
+                        Google Gemini 2.0 Flash generates personalized, actionable advice for each student
+                    </p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-card bg-gradient-to-br from-green-50 to-teal-50 rounded-xl p-8 transition-all duration-300">
+                    <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-database text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Profile Management</h3>
+                    <p class="text-gray-600">
+                        Store, track, and manage unlimited student assessments with Firebase Firestore
+                    </p>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="feature-card bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8 transition-all duration-300">
+                    <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-history text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Assessment History</h3>
+                    <p class="text-gray-600">
+                        View past assessments, filter by risk level, and track student progress over time
+                    </p>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="feature-card bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl p-8 transition-all duration-300">
+                    <div class="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mb-6">
+                        <i class="fas fa-shield-alt text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Secure & Private</h3>
+                    <p class="text-gray-600">
+                        End-to-end encryption with Firebase Auth ensures student data remains confidential
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">How It Works</h2>
+                <p class="text-xl text-gray-600">Three simple steps to identify at-risk students</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+                <div class="text-center">
+                    <div class="relative inline-block">
+                        <div class="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-xl">
+                            <span class="text-4xl font-bold text-white">1</span>
+                        </div>
+                        <div class="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full animate-pulse"></div>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Input Student Data</h3>
+                    <p class="text-gray-600">
+                        Fill out a comprehensive form with student demographics, academic history, and behavioral factors
+                    </p>
+                </div>
+
+                <div class="text-center">
+                    <div class="relative inline-block">
+                        <div class="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-xl">
+                            <span class="text-4xl font-bold text-white">2</span>
+                        </div>
+                        <div class="absolute -top-2 -right-2 w-8 h-8 bg-green-400 rounded-full animate-pulse"></div>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Get AI Analysis</h3>
+                    <p class="text-gray-600">
+                        Our ML model analyzes the data and predicts risk level with SHAP explainability visualizations
+                    </p>
+                </div>
+
+                <div class="text-center">
+                    <div class="relative inline-block">
+                        <div class="w-24 h-24 bg-gradient-to-br from-pink-500 to-red-600 rounded-full flex items-center justify-center mb-6 mx-auto shadow-xl">
+                            <span class="text-4xl font-bold text-white">3</span>
+                        </div>
+                        <div class="absolute -top-2 -right-2 w-8 h-8 bg-blue-400 rounded-full animate-pulse"></div>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Receive Advice</h3>
+                    <p class="text-gray-600">
+                        Get personalized mentoring strategies from Google Gemini AI tailored to each student's needs
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technology Stack -->
+    <section class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-800 mb-4">Built with Modern Technologies</h2>
+                <p class="text-xl text-gray-600">Leveraging the best open-source and cloud tools</p>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-6">
+                <span class="tech-badge px-8 py-4 bg-blue-100 text-blue-800 rounded-xl font-bold text-lg">
+                    <i class="fab fa-python mr-2"></i>Python
+                </span>
+                <span class="tech-badge px-8 py-4 bg-green-100 text-green-800 rounded-xl font-bold text-lg">
+                    <i class="fas fa-leaf mr-2"></i>LightGBM
+                </span>
+                <span class="tech-badge px-8 py-4 bg-purple-100 text-purple-800 rounded-xl font-bold text-lg">
+                    <i class="fas fa-chart-line mr-2"></i>SHAP
+                </span>
+                <span class="tech-badge px-8 py-4 bg-indigo-100 text-indigo-800 rounded-xl font-bold text-lg">
+                    <i class="fas fa-robot mr-2"></i>Gemini 2.0
+                </span>
+                <span class="tech-badge px-8 py-4 bg-orange-100 text-orange-800 rounded-xl font-bold text-lg">
+                    <i class="fab fa-google mr-2"></i>Firebase
+                </span>
+                <span class="tech-badge px-8 py-4 bg-gray-100 text-gray-800 rounded-xl font-bold text-lg">
+                    <i class="fas fa-flask mr-2"></i>Flask
+                </span>
+                <span class="tech-badge px-8 py-4 bg-cyan-100 text-cyan-800 rounded-xl font-bold text-lg">
+                    <i class="fas fa-wind mr-2"></i>Tailwind
+                </span>
+                <span class="tech-badge px-8 py-4 bg-yellow-100 text-yellow-800 rounded-xl font-bold text-lg">
+                    <i class="fas fa-chart-bar mr-2"></i>Chart.js
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 hero-gradient text-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-4xl md:text-5xl font-bold mb-6">Ready to Support Your Students?</h2>
+            <p class="text-xl mb-8 text-indigo-100">
+                Join educators using AI to identify at-risk students early and provide targeted interventions
+            </p>
+            <a href="/signup" class="inline-block px-10 py-4 bg-white text-indigo-600 rounded-lg font-bold text-xl hover:bg-gray-100 transition-all shadow-xl hover:shadow-2xl">
+                Start Free Today
+            </a>
+            <p class="mt-6 text-indigo-200">
+                No credit card required • 100% Free • Unlimited Assessments
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">AI Student Mentor</h3>
+                    <p class="text-gray-400">
+                        Empowering educators with AI-driven insights to support student success
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Quick Links</h4>
+                    <ul class="space-y-2">
+                        <li><a href="/about" class="text-gray-400 hover:text-white transition-colors">About</a></li>
+                        <li><a href="/login" class="text-gray-400 hover:text-white transition-colors">Login</a></li>
+                        <li><a href="/signup" class="text-gray-400 hover:text-white transition-colors">Sign Up</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-4">Technology</h4>
+                    <div class="flex space-x-4">
+                        <span class="px-3 py-1 bg-gray-800 rounded text-sm">LightGBM</span>
+                        <span class="px-3 py-1 bg-gray-800 rounded text-sm">SHAP</span>
+                        <span class="px-3 py-1 bg-gray-800 rounded text-sm">Gemini</span>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 AI Student Mentor. Built with ❤️ for Education.</p>
+                <a href="https://github.com/yourusername/student-risk-demo" target="_blank" class="inline-block mt-4 text-indigo-400 hover:text-indigo-300 transition-colors">
+                    <i class="fab fa-github mr-2"></i>View on GitHub
+                </a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

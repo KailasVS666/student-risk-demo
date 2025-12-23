@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AI Student Mentor{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Welcome back!</h1>
+        <p class="text-gray-600">Monitor student assessments and access recent profiles</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Total Assessments -->
+        <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium mb-1">Total Assessments</p>
+                    <p class="text-3xl font-bold text-indigo-600" id="totalAssessments">
+                        <span class="inline-block animate-pulse">--</span>
+                    </p>
+                </div>
+                <div class="bg-indigo-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Risk Level -->
+        <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium mb-1">Avg Risk Level</p>
+                    <p class="text-3xl font-bold text-green-600" id="avgRisk">
+                        <span class="inline-block animate-pulse">--</span>
+                    </p>
+                </div>
+                <div class="bg-green-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Last Activity -->
+        <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 font-medium mb-1">Last Activity</p>
+                    <p class="text-xl font-bold text-purple-600" id="lastActivity">
+                        <span class="inline-block animate-pulse">--</span>
+                    </p>
+                </div>
+                <div class="bg-purple-100 p-3 rounded-lg">
+                    <svg class="h-8 w-8 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg p-8 mb-8 text-white">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+            <div class="mb-4 md:mb-0">
+                <h2 class="text-2xl font-bold mb-2">Ready to analyze a student?</h2>
+                <p class="text-indigo-100">Create a new assessment and get AI-powered insights in minutes</p>
+            </div>
+            <a href="/assessment" class="px-6 py-3 bg-white text-indigo-600 rounded-lg font-bold hover:bg-indigo-50 transition-colors duration-200 shadow-md">
+                + New Assessment
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Profiles -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Recent Profiles</h2>
+            <a href="/history" class="text-indigo-600 hover:text-indigo-700 font-medium text-sm">
+                View All →
+            </a>
+        </div>
+
+        <!-- Loading State -->
+        <div id="profilesLoading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <p class="mt-4 text-gray-500">Loading profiles...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="profilesEmpty" class="text-center py-12 hidden">
+            <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-700 mb-2">No profiles yet</h3>
+            <p class="text-gray-500 mb-4">Create your first student assessment to get started</p>
+            <a href="/assessment" class="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700">
+                Create Assessment
+            </a>
+        </div>
+
+        <!-- Profiles List -->
+        <div id="profilesList" class="space-y-3 hidden">
+            <!-- Profiles will be dynamically inserted here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    if (typeof firebase === 'undefined' || !FIREBASE_CONFIG || !FIREBASE_CONFIG.projectId) {
+        console.error("Firebase not configured");
+        return;
+    }
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    // Auth state listener
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('user-email-nav').textContent = user.email;
+            loadDashboardData(user.email);
+        } else {
+            window.location.href = '/login';
+        }
+    });
+
+    // Logout handlers
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        auth.signOut().then(() => {
+            window.location.href = '/login';
+        });
+    });
+    
+    document.getElementById('logoutBtnMobile').addEventListener('click', () => {
+        auth.signOut().then(() => {
+            window.location.href = '/login';
+        });
+    });
+
+    async function loadDashboardData(userEmail) {
+        try {
+            const snapshot = await db.collection('profiles')
+                .doc(userEmail)
+                .collection('student_data')
+                .get();
+
+            const profilesLoading = document.getElementById('profilesLoading');
+            const profilesEmpty = document.getElementById('profilesEmpty');
+            const profilesList = document.getElementById('profilesList');
+
+            profilesLoading.classList.add('hidden');
+
+            if (snapshot.empty) {
+                profilesEmpty.classList.remove('hidden');
+                document.getElementById('totalAssessments').textContent = '0';
+                document.getElementById('avgRisk').textContent = 'N/A';
+                document.getElementById('lastActivity').textContent = 'Never';
+                return;
+            }
+
+            profilesEmpty.classList.add('hidden');
+            profilesList.classList.remove('hidden');
+
+            // Convert to array and sort by createdAt
+            const profiles = [];
+            snapshot.forEach(doc => {
+                profiles.push({ id: doc.id, data: doc.data() });
+            });
+
+            // Sort by createdAt (most recent first)
+            profiles.sort((a, b) => {
+                const timeA = a.data.createdAt?.toDate ? a.data.createdAt.toDate().getTime() : 0;
+                const timeB = b.data.createdAt?.toDate ? b.data.createdAt.toDate().getTime() : 0;
+                return timeB - timeA; // Descending order
+            });
+
+            // Update stats
+            document.getElementById('totalAssessments').textContent = profiles.length;
+            // Last activity from first doc
+            const first = profiles[0];
+            const ts = first?.data?.createdAt?.toDate ? first.data.createdAt.toDate() : null;
+            document.getElementById('lastActivity').textContent = ts ? ts.toLocaleString() : '—';
+            
+            // Calculate average risk (placeholder logic)
+            let riskSum = 0;
+            let riskCount = 0;
+            
+            // Display only first 5 profiles
+            profiles.slice(0, 5).forEach(profile => {
+                const profileCard = createProfileCard(profile.id, profile.data);
+                profilesList.appendChild(profileCard);
+                
+                // Simple risk estimation based on G1 and G2
+                const g1 = profile.data.G1 || 10;
+                const g2 = profile.data.G2 || 10;
+                const avgGrade = (g1 + g2) / 2;
+                if (avgGrade < 10) riskSum += 2; // High
+                else if (avgGrade < 14) riskSum += 1; // Medium
+                else riskSum += 0; // Low
+                riskCount++;
+            });
+
+            const avgRiskValue = riskCount > 0 ? riskSum / riskCount : 0;
+            const riskLabel = avgRiskValue < 0.7 ? 'Low' : avgRiskValue < 1.5 ? 'Medium' : 'High';
+            document.getElementById('avgRisk').textContent = riskLabel;
+
+        } catch (error) {
+            console.error("Error loading dashboard:", error);
+            document.getElementById('profilesLoading').classList.add('hidden');
+            showToast('Error loading dashboard data', 'error');
+        }
+    }
+
+    function createProfileCard(profileName, data) {
+        const card = document.createElement('div');
+        card.className = 'p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:shadow-md transition-all duration-200 cursor-pointer';
+        
+        const g1 = data.G1 || 0;
+        const g2 = data.G2 || 0;
+        const avgGrade = (g1 + g2) / 2;
+        const createdAt = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : null;
+        const createdText = createdAt ? createdAt.toLocaleString() : '';
+        
+        let riskClass = 'bg-green-100 text-green-800';
+        let riskText = 'Low Risk';
+        if (avgGrade < 10) {
+            riskClass = 'bg-red-100 text-red-800';
+            riskText = 'High Risk';
+        } else if (avgGrade < 14) {
+            riskClass = 'bg-yellow-100 text-yellow-800';
+            riskText = 'Medium Risk';
+        }
+
+        card.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div class="flex-1">
+                    <h3 class="font-semibold text-gray-800 mb-1">${profileName}</h3>
+                    <div class="flex items-center space-x-3 text-sm text-gray-600">
+                        <span>G1: ${g1}</span>
+                        <span>G2: ${g2}</span>
+                        <span>Age: ${data.age || 'N/A'}</span>
+                    </div>
+                </div>
+                <div>
+                    <span class="px-3 py-1 rounded-full text-xs font-medium ${riskClass}">
+                        ${riskText}
+                    </span>
+                </div>
+            </div>
+            <div class="mt-2 text-xs text-gray-500">${createdText ? `Created: ${createdText}` : ''}</div>
+            <div class="mt-3 flex space-x-2">
+                <button onclick="loadProfile('${profileName}')" class="text-xs px-3 py-1 bg-indigo-50 text-indigo-600 rounded hover:bg-indigo-100">
+                    View
+                </button>
+                <button onclick="deleteProfile(this, '${profileName}')" class="text-xs px-3 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100">
+                    Delete
+                </button>
+            </div>
+        `;
+
+        return card;
+    }
+
+    window.loadProfile = function(profileName) {
+        // Store profile name in session storage and redirect to assessment page
+        sessionStorage.setItem('loadProfile', profileName);
+        window.location.href = '/assessment';
+    };
+
+    window.deleteProfile = async function(btn, profileName) {
+        if (!confirm(`Delete profile "${profileName}"? This cannot be undone.`)) return;
+
+        const user = auth.currentUser;
+        if (!user) return;
+
+        try {
+            if (btn) { btn.disabled = true; const orig = btn.textContent; btn.dataset.originalText = orig; btn.textContent = 'Deleting...'; }
+            await db.collection('profiles')
+                .doc(user.email)
+                .collection('student_data')
+                .doc(profileName)
+                .delete();
+            
+            showToast('Profile deleted successfully', 'success');
+            // Reload dashboard
+            location.reload();
+        } catch (error) {
+            console.error("Delete error:", error);
+            showToast('Error deleting profile', 'error');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = btn.dataset.originalText || 'Delete'; }
+        }
+    };
+})();
+</script>
+{% endblock %}
