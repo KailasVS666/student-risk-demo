@@ -1,6 +1,0 @@
-# Virtual Environment
-.venv/
-
-# Local secrets
-.streamlit/
-.env
