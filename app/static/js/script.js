@@ -213,6 +213,18 @@ document.querySelectorAll('#inputForm input, #inputForm select, #inputForm texta
 // RESULTS & API INTERACTION LOGIC
 // =========================================================================
 
+// Global helper to get current user email (defined early, will be populated by Firebase)
+window.firebaseDb = null;
+window.firebaseAuth = null;
+window.currentUserEmail = null;
+
+window.getCurrentUserEmail = function() {
+    // Try multiple sources in order of reliability
+    if (window.currentUserEmail) return window.currentUserEmail;
+    if (window.firebaseAuth && window.firebaseAuth.currentUser) return window.firebaseAuth.currentUser.email;
+    return null;
+};
+
 // Placeholder for chart instances to allow easy destruction/update
 let explanationChartInstance = null;
 let gradesChartInstance = null;
@@ -257,10 +269,23 @@ document.getElementById('generateAdviceBtn').addEventListener('click', async () 
         // 5. Update Risk Badge (CRITICAL UX IMPROVEMENT)
         updateRiskBadge(data.risk_category, data.prediction, data.confidence); // risk_category is 'low'|'medium'|'high'
 
-        // 6. Render Advice (Structure the output for 10/10 UX)
+        // 6. Store results globally for PDF export
+        window.currentAssessmentResults = {
+            predicted_grade: data.prediction,
+            risk_category: data.risk_category,
+            confidence: data.confidence,
+            mentoring_advice: data.mentoring_advice,
+            shap_values: data.shap_values
+        };
+        
+        // Show PDF download button
+        const pdfBtn = document.getElementById('downloadPdfBtn');
+        if (pdfBtn) pdfBtn.style.display = 'flex';
+
+        // 7. Render Advice (Structure the output for 10/10 UX)
         renderAdvice(data.mentoring_advice); // This should handle structured/markdown advice
 
-        // 7. Render Charts
+        // 8. Render Charts
         if (data.probabilities) {
             renderProbaChart(data.probabilities);
         }
@@ -268,6 +293,50 @@ document.getElementById('generateAdviceBtn').addEventListener('click', async () 
         lastShapValuesRaw = data.shap_values || [];
         renderExplanationChart(lastShapValuesRaw);
         renderGradesChart(formData.G1, formData.G2, data.prediction); // Pass G1, G2, and final prediction
+
+        // 9. Persist latest assessment results (respect Auto-save preference)
+        try {
+            const userEmail = window.getCurrentUserEmail();
+            const db = window.firebaseDb;
+            if (userEmail && db) {
+                const prefs = JSON.parse(localStorage.getItem(`prefs_${userEmail}`) || '{}');
+                const autoSaveEnabled = prefs.autoSave !== false; // default true
+                console.log('Auto-save preference:', autoSaveEnabled);
+                if (autoSaveEnabled) {
+                    const nameInput = document.getElementById('profileName');
+                    const profileName = (nameInput && nameInput.value && nameInput.value.trim())
+                        ? nameInput.value.trim()
+                        : `Assessment_${new Date().toISOString().slice(0,19).replace(/[T:]/g,'-')}`;
+
+                    console.log('Saving assessment results to profile:', profileName);
+                    const docRef = db.collection('profiles')
+                        .doc(userEmail)
+                        .collection('student_data')
+                        .doc(profileName);
+
+                    await docRef.set({
+                        // Core inputs that were used
+                        ...formData,
+                        // Results from the analysis
+                        predicted_grade: data.prediction,
+                        risk_category: data.risk_category,
+                        confidence: data.confidence,
+                        mentoring_advice: data.mentoring_advice || '',
+                        shap_values: data.shap_values || lastShapValuesRaw || [],
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                    console.log('Assessment results saved successfully to:', profileName);
+                    showToast(`Assessment saved to "${profileName}"`, 'success');
+                } else {
+                    console.log('Auto-save is disabled in preferences');
+                }
+            } else {
+                console.warn('No user email available, skipping auto-save');
+            }
+        } catch (persistErr) {
+            console.error('Error saving assessment results:', persistErr);
+            showToast('Could not auto-save results', 'warning');
+        }
 
     } catch (error) {
         console.error('Prediction Error:', error);
@@ -591,6 +660,10 @@ function renderProbaChart(probMap) {
     const db = firebase.firestore();
     const auth = firebase.auth();
 
+    // Make available globally (these were defined earlier but assign here)
+    window.firebaseDb = db;
+    window.firebaseAuth = auth;
+
     // --- Get UI Elements (with null checks for pages that don't have auth UI) ---
     const authContainer = document.getElementById('auth-container');
     const appContainer = document.getElementById('app');
@@ -602,13 +675,15 @@ function renderProbaChart(probMap) {
 
     // --- Auth State Variable ---
     let userEmail = null; // This will be set to the *actual* logged-in user's email
-
+    
+    // Helper function to get current user email (used by auto-save)
     // --- PRIMARY AUTHENTICATION LISTENER ---
     // This function runs on page load and whenever login state changes
     auth.onAuthStateChanged(user => {
         if (user) {
             // User is SIGNED IN
             userEmail = user.email;
+            window.currentUserEmail = user.email; // Make available globally
             if (userEmailSpan) userEmailSpan.textContent = userEmail;
             
             // Show the app, hide the login form (only if these elements exist)
@@ -621,6 +696,7 @@ function renderProbaChart(probMap) {
         } else {
             // User is SIGNED OUT
             userEmail = null;
+            window.currentUserEmail = null;
             if (userEmailSpan) userEmailSpan.textContent = '';
             
             // Show the login form, hide the app (only if these elements exist)
@@ -847,6 +923,53 @@ function renderProbaChart(probMap) {
             if (adviceText) {
                 navigator.clipboard.writeText(adviceText);
                 showToast('Advice copied to clipboard!', 'info');
+            }
+        });
+    }
+
+    // --- PDF Download from Current Results ---
+    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    if (downloadPdfBtn) {
+        downloadPdfBtn.addEventListener('click', async () => {
+            if (!window.currentAssessmentResults) {
+                showToast('No assessment results available. Please run an analysis first.', 'error');
+                return;
+            }
+
+            try {
+                downloadPdfBtn.disabled = true;
+                downloadPdfBtn.textContent = 'Generating...';
+
+                const response = await fetch('/generate-pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(window.currentAssessmentResults)
+                });
+
+                if (!response.ok) throw new Error('PDF generation failed');
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `student_report_${Date.now()}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showToast('PDF downloaded successfully!', 'success');
+            } catch (error) {
+                console.error('PDF download error:', error);
+                showToast('Error generating PDF', 'error');
+            } finally {
+                downloadPdfBtn.disabled = false;
+                downloadPdfBtn.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                    Download PDF Report
+                `;
             }
         });
     }

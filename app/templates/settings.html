@@ -150,15 +150,27 @@
         
         <p class="text-gray-600 mb-4">Download all your student assessment data</p>
         
-        <button 
-            id="exportBtn"
-            class="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center"
-        >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            Export to JSON
-        </button>
+        <div class="flex gap-4">
+            <button 
+                id="exportBtn"
+                class="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center"
+            >
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Export to JSON
+            </button>
+            
+            <button 
+                id="exportPdfBtn"
+                class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center"
+            >
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+                Export to PDF
+            </button>
+        </div>
     </div>
 
     <!-- Danger Zone -->
@@ -335,6 +347,81 @@
         } catch (error) {
             console.error("Export error:", error);
             showToast('Error exporting data', 'error');
+        }
+    });
+
+    // Export to PDF
+    document.getElementById('exportPdfBtn').addEventListener('click', async () => {
+        try {
+            // Reuse initialized auth/db from above
+            const user = auth.currentUser;
+            if (!user) {
+                showToast('Please sign in to export', 'error');
+                return;
+            }
+
+            const profilesRef = db
+                .collection('profiles')
+                .doc(user.email)
+                .collection('student_data');
+
+            // Try newest by updatedAt, then createdAt, finally any doc
+            let snapshot;
+            try {
+                snapshot = await profilesRef.orderBy('updatedAt', 'desc').limit(1).get();
+            } catch (_) { /* ignore and try createdAt */ }
+            if (!snapshot || snapshot.empty) {
+                try { snapshot = await profilesRef.orderBy('createdAt', 'desc').limit(1).get(); } catch (_) {}
+            }
+            if (!snapshot || snapshot.empty) {
+                snapshot = await profilesRef.limit(1).get();
+            }
+
+            if (!snapshot || snapshot.empty) {
+                showToast('No assessment data found', 'error');
+                return;
+            }
+
+            const latest = snapshot.docs[0].data() || {};
+
+            // Build sensible fallbacks if prediction fields were not persisted
+            const g1 = Number(latest.G1 || 0);
+            const g2 = Number(latest.G2 || 0);
+            const avg = (g1 + g2) / 2;
+            let risk = 'Low';
+            if (avg < 10) risk = 'High';
+            else if (avg < 14) risk = 'Medium';
+
+            const payload = {
+                predicted_grade: latest.predicted_grade ?? (isFinite(avg) && avg > 0 ? Math.round(avg) : 'N/A'),
+                risk_category: (latest.risk_category || risk).toString(),
+                confidence: latest.confidence ?? 0,
+                mentoring_advice: latest.mentoring_advice || '',
+                shap_values: latest.shap_values || []
+            };
+
+            const response = await fetch('/generate-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('PDF generation failed');
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `student_report_${Date.now()}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('PDF exported successfully', 'success');
+        } catch (error) {
+            console.error("PDF export error:", error);
+            showToast('Error exporting PDF', 'error');
         }
     });
 

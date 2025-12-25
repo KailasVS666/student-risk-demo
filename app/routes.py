@@ -3,13 +3,20 @@ import json
 import joblib
 import numpy as np
 import pandas as pd
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, make_response
 import google.generativeai as genai
 from dotenv import load_dotenv
 import shap
 import logging
 from .limits import limiter
-from .utils import send_faculty_alert  # NEW IMPORT
+from .utils import send_faculty_alert
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from io import BytesIO
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -266,5 +273,145 @@ def predict_risk():
     except Exception as e:
         logger.exception(f"Prediction error: {e}")
         return jsonify({"error": f"Error: {e}"}), 500
+
+@main_bp.route('/generate-pdf', methods=['POST'])
+@limiter.limit("5 per minute")
+def generate_pdf():
+    try:
+        data = request.json
+        logger.info(f"PDF generation request received with data keys: {data.keys() if data else 'None'}")
+        
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        story = []
+        
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#4F46E5'),
+            spaceAfter=30
+        )
+        
+        # Header
+        story.append(Paragraph("AI Student Mentor - Assessment Report", title_style))
+        story.append(Spacer(1, 0.2*inch))
+        story.append(Paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}", styles['Normal']))
+        story.append(Spacer(1, 0.4*inch))
+        
+        # Risk Assessment Summary
+        story.append(Paragraph("Risk Assessment Summary", styles['Heading2']))
+        story.append(Spacer(1, 0.1*inch))
+        
+        # Normalize confidence to percentage
+        conf_value = data.get('confidence', 0)
+        try:
+            conf_pct = int(round(conf_value * 100)) if isinstance(conf_value, (int, float)) and conf_value <= 1 else int(round(conf_value))
+        except Exception:
+            conf_pct = 0
+
+        summary_data = [
+            ['Predicted Final Grade', f"{data.get('predicted_grade', 'N/A')}/20"],
+            ['Risk Level', str(data.get('risk_category', 'N/A')).upper()],
+            ['Confidence', f"{conf_pct}%"]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F3F4F6')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E5E7EB'))
+        ]))
+        
+        story.append(summary_table)
+        story.append(Spacer(1, 0.4*inch))
+        
+        # Mentoring Advice - sanitize text for PDF
+        if data.get('mentoring_advice'):
+            story.append(Paragraph("Personalized Mentoring Advice", styles['Heading2']))
+            story.append(Spacer(1, 0.1*inch))
+            
+            try:
+                import html
+                import re
+                
+                # Get and clean advice text
+                advice_text = str(data['mentoring_advice'])
+                
+                # Remove emojis and special unicode characters
+                advice_text = re.sub(r'[^\x00-\x7F]+', ' ', advice_text)
+                
+                # Convert markdown formatting to plain text
+                advice_text = re.sub(r'###\s*', '', advice_text)  # Remove heading markers
+                advice_text = re.sub(r'\*\*([^*]+)\*\*', r'\1', advice_text)  # Remove bold
+                advice_text = re.sub(r'\*([^*]+)\*', r'\1', advice_text)  # Remove italics
+                advice_text = advice_text.replace('•', '- ')  # Replace bullets
+                
+                # Split into paragraphs and format each
+                paragraphs = advice_text.split('\n\n')
+                for para in paragraphs[:10]:  # Limit to 10 paragraphs
+                    if para.strip():
+                        # Clean and escape HTML entities
+                        clean_para = html.escape(para.strip())
+                        # Remove any remaining problematic characters
+                        clean_para = clean_para.replace('\n', '<br/>')
+                        story.append(Paragraph(clean_para, styles['Normal']))
+                        story.append(Spacer(1, 0.1*inch))
+                
+            except Exception as e:
+                logger.warning(f"Error formatting advice text: {e}")
+                # Fallback: just show a simple message
+                story.append(Paragraph("Mentoring advice is available in the web interface.", styles['Normal']))
+            
+            story.append(Spacer(1, 0.2*inch))
+        
+        # Key Factors
+        if data.get('shap_values') and isinstance(data['shap_values'], list):
+            story.append(Paragraph("Key Influencing Factors", styles['Heading2']))
+            story.append(Spacer(1, 0.1*inch))
+            
+            try:
+                factors_data = [['Factor', 'Impact']]
+                for factor in data['shap_values'][:5]:
+                    feature_name = str(factor.get('feature', 'Unknown'))
+                    importance = factor.get('importance', 0)
+                    factors_data.append([feature_name, f"{float(importance):.3f}"])
+                
+                factors_table = Table(factors_data, colWidths=[3*inch, 1.5*inch])
+                factors_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F46E5')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                
+                story.append(factors_table)
+            except Exception as e:
+                logger.warning(f"Error creating factors table: {e}")
+        
+        # Build PDF
+        doc.build(story)
+        buffer.seek(0)
+        
+        response = make_response(buffer.getvalue())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename=student_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+        
+        logger.info("PDF generated successfully")
+        return response
+        
+    except Exception as e:
+        logger.exception(f"PDF generation error: {e}")
+        return jsonify({"error": str(e)}), 500
 
 main = main_bp
