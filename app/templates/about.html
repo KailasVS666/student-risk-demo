@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}About - AI Student Mentor{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto">
+    <!-- Hero Section -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">About AI Student Mentor</h1>
+        <p class="text-xl text-gray-600">Empowering educators with AI-driven early warning systems to identify at-risk students</p>
+    </div>
+
+    <!-- Mission -->
+    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+            <svg class="w-8 h-8 mr-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            Our Mission
+        </h2>
+        <p class="text-gray-700 text-lg leading-relaxed">
+            To leverage advanced machine learning and AI technologies to provide educators with actionable insights 
+            about student performance, enabling early intervention and personalized support for students at risk of academic failure.
+        </p>
+    </div>
+
+    <!-- How It Works -->
+    <div class="bg-white rounded-xl shadow-md p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">How It Works</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-2xl font-bold text-indigo-600">1</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Input Data</h3>
+                <p class="text-gray-600">Enter student demographic, academic, and behavioral information into our comprehensive assessment form.</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-2xl font-bold text-purple-600">2</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">AI Analysis</h3>
+                <p class="text-gray-600">Our LightGBM model analyzes 30+ features using SHAP explainability to predict risk levels.</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-2xl font-bold text-pink-600">3</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Get Insights</h3>
+                <p class="text-gray-600">Receive personalized mentoring advice powered by Google Gemini 2.0 Flash for targeted interventions.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technology Stack -->
+    <div class="bg-white rounded-xl shadow-md p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Technology Stack</h2>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="text-center">
+                <div class="bg-blue-50 rounded-lg p-4 mb-3">
+                    <svg class="w-12 h-12 mx-auto text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-gray-800">LightGBM</h3>
+                <p class="text-sm text-gray-600">ML Model</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="bg-purple-50 rounded-lg p-4 mb-3">
+                    <svg class="w-12 h-12 mx-auto text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-gray-800">SHAP</h3>
+                <p class="text-sm text-gray-600">Explainability</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="bg-orange-50 rounded-lg p-4 mb-3">
+                    <svg class="w-12 h-12 mx-auto text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-gray-800">Firebase</h3>
+                <p class="text-sm text-gray-600">Auth & Storage</p>
+            </div>
+            
+            <div class="text-center">
+                <div class="bg-green-50 rounded-lg p-4 mb-3">
+                    <svg class="w-12 h-12 mx-auto text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-gray-800">Gemini 2.0</h3>
+                <p class="text-sm text-gray-600">AI Advice</p>
+            </div>
+        </div>
+
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+            <span class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">Flask</span>
+            <span class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">Python</span>
+            <span class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">Tailwind CSS</span>
+            <span class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">Chart.js</span>
+            <span class="px-4 py-2 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">Firestore</span>
+        </div>
+    </div>
+
+    <!-- Model Information -->
+    <div class="bg-white rounded-xl shadow-md p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Model Information</h2>
+        
+        <div class="space-y-4">
+            <div class="border-l-4 border-indigo-500 pl-4">
+                <h3 class="font-bold text-gray-800 mb-2">Dataset</h3>
+                <p class="text-gray-600">
+                    Trained on the UCI Student Performance Dataset, comprising data from Portuguese secondary schools 
+                    with 30+ features including demographics, academic history, and social factors.
+                </p>
+            </div>
+            
+            <div class="border-l-4 border-purple-500 pl-4">
+                <h3 class="font-bold text-gray-800 mb-2">Performance</h3>
+                <p class="text-gray-600">
+                    Achieved <strong>85%+ accuracy</strong> in predicting student risk levels. The model uses 
+                    gradient boosting with optimized hyperparameters for balanced precision and recall.
+                </p>
+            </div>
+            
+            <div class="border-l-4 border-pink-500 pl-4">
+                <h3 class="font-bold text-gray-800 mb-2">Explainability</h3>
+                <p class="text-gray-600">
+                    SHAP (SHapley Additive exPlanations) values provide transparent, interpretable insights into 
+                    which features most influence each prediction, ensuring trustworthy AI decisions.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="bg-white rounded-xl shadow-md p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Frequently Asked Questions</h2>
+        
+        <div class="space-y-6">
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">How accurate is the risk prediction?</h3>
+                <p class="text-gray-600">
+                    Our model achieves 85%+ accuracy on test data. However, predictions should be used as one tool 
+                    among many in assessing student needs, not as the sole decision-maker.
+                </p>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">What data is required for assessment?</h3>
+                <p class="text-gray-600">
+                    The system requires student demographics (age, gender), family background (parental education, 
+                    family size), academic history (past grades, failures), and behavioral factors (study time, absences).
+                </p>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Is student data secure?</h3>
+                <p class="text-gray-600">
+                    Yes! All data is stored securely in Firebase Firestore with user authentication. Data is encrypted 
+                    in transit and at rest, and only accessible by the authenticated user.
+                </p>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Can I export my data?</h3>
+                <p class="text-gray-600">
+                    Absolutely! Visit the Settings page to export all your assessment data in JSON format at any time.
+                </p>
+            </div>
+            
+            <div>
+                <h3 class="text-lg font-bold text-gray-800 mb-2">Is this system free to use?</h3>
+                <p class="text-gray-600">
+                    Yes! This prototype uses free-tier services from Firebase (Spark Plan) and Google Gemini API, 
+                    supporting up to 1,500 requests per day.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credits & Contact -->
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-8 text-white text-center">
+        <h2 class="text-2xl font-bold mb-4">Built with ❤️ for Education</h2>
+        <p class="text-lg mb-6">
+            This project demonstrates the power of AI in education, combining machine learning, 
+            explainable AI, and generative AI to support student success.
+        </p>
+        
+        <div class="flex justify-center space-x-4">
+            <a href="https://github.com/yourusername/student-risk-demo" target="_blank" class="px-6 py-3 bg-white text-indigo-600 rounded-lg font-medium hover:bg-gray-100 transition-colors">
+                View on GitHub
+            </a>
+            <a href="/assessment" class="px-6 py-3 bg-indigo-700 text-white rounded-lg font-medium hover:bg-indigo-800 transition-colors">
+                Try It Now
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    if (typeof firebase === 'undefined' || !FIREBASE_CONFIG || !FIREBASE_CONFIG.projectId) {
+        console.error("Firebase not configured");
+        return;
+    }
+
+    if (!firebase.apps.length) {
+        firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    const auth = firebase.auth();
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById('user-email-nav').textContent = user.email;
+        }
+    });
+
+    // Logout handlers
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        auth.signOut().then(() => window.location.href = '/login');
+    });
+    
+    document.getElementById('logoutBtnMobile').addEventListener('click', () => {
+        auth.signOut().then(() => window.location.href = '/login');
+    });
+})();
+</script>
+{% endblock %}
