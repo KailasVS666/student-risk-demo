@@ -211,6 +211,27 @@ def validate_student_data(data):
 def index():
     return redirect('/login')
 
+# Lightweight health checks (useful for Render probes and curl tests)
+@main_bp.route('/healthz')
+def healthz():
+    try:
+        status = {
+            "ok": True,
+            "models_loaded": bool(pipeline is not None and label_encoder is not None and risk_explainer is not None),
+            "time": datetime.utcnow().isoformat() + "Z"
+        }
+        return jsonify(status), 200
+    except Exception:
+        return jsonify({"ok": False}), 500
+
+@main_bp.route('/status')
+def status():
+    return jsonify({
+        "pipeline": bool(pipeline is not None),
+        "label_encoder": bool(label_encoder is not None),
+        "risk_explainer": bool(risk_explainer is not None)
+    }), 200
+
 @main_bp.route('/api/predict', methods=['POST'])
 @limiter.limit("30 per minute")
 def predict_risk():
