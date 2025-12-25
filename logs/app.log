@@ -58,3 +58,39 @@
 2025-12-23T20:37:06 INFO werkzeug - 127.0.0.1 - - [23/Dec/2025 20:37:06] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
 2025-12-23T20:37:06 INFO werkzeug - 127.0.0.1 - - [23/Dec/2025 20:37:06] "[36mGET /static/js/script.js HTTP/1.1[0m" 304 -
 2025-12-23T20:37:56 INFO werkzeug - 127.0.0.1 - - [23/Dec/2025 20:37:56] "POST /api/predict HTTP/1.1" 200 -
+2025-12-25T10:00:27 INFO root - Environment check complete.
+2025-12-25T10:00:27 INFO root - Extensions (Limiter, Mail) initialized.
+2025-12-25T10:00:28 INFO root - All models loaded successfully.
+2025-12-25T10:00:28 INFO root - Grade averages JSON not found. Will calculate on the fly.
+2025-12-25T10:01:44 INFO root - Environment check complete.
+2025-12-25T10:01:44 INFO root - Extensions (Limiter, Mail) initialized.
+2025-12-25T10:01:44 INFO root - All models loaded successfully.
+2025-12-25T10:01:44 INFO root - Grade averages JSON not found. Will calculate on the fly.
+2025-12-25T10:02:03 INFO app.routes - Models and Pipeline loaded successfully.
+2025-12-25T10:02:03 INFO app.routes - Gemini model initialized successfully.
+2025-12-25T10:02:03 INFO root - All route blueprints registered successfully.
+2025-12-25T10:02:03 INFO werkzeug - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:8501
+2025-12-25T10:02:03 INFO werkzeug - [33mPress CTRL+C to quit[0m
+2025-12-25T10:02:03 INFO werkzeug -  * Restarting with stat
+2025-12-25T10:02:04 INFO root - Environment check complete.
+2025-12-25T10:02:04 INFO root - Extensions (Limiter, Mail) initialized.
+2025-12-25T10:02:05 INFO root - All models loaded successfully.
+2025-12-25T10:02:05 INFO root - Grade averages JSON not found. Will calculate on the fly.
+2025-12-25T10:02:06 INFO app.routes - Models and Pipeline loaded successfully.
+2025-12-25T10:02:06 INFO app.routes - Gemini model initialized successfully.
+2025-12-25T10:02:06 INFO root - All route blueprints registered successfully.
+2025-12-25T10:02:06 WARNING werkzeug -  * Debugger is active!
+2025-12-25T10:02:06 INFO werkzeug -  * Debugger PIN: 562-981-471
+2025-12-25T10:05:21 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:05:21] "[32mGET / HTTP/1.1[0m" 302 -
+2025-12-25T10:05:21 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:05:21] "GET /login HTTP/1.1" 200 -
+2025-12-25T10:05:22 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:05:22] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-12-25T10:05:24 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:05:24] "GET /dashboard HTTP/1.1" 200 -
+2025-12-25T10:05:24 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:05:24] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-12-25T10:05:32 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:05:32] "GET /dashboard HTTP/1.1" 200 -
+2025-12-25T10:05:32 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:05:32] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-12-25T10:05:35 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:05:35] "GET /assessment HTTP/1.1" 200 -
+2025-12-25T10:05:35 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:05:35] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2025-12-25T10:05:35 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:05:35] "[36mGET /static/js/script.js HTTP/1.1[0m" 304 -
+2025-12-25T10:06:37 INFO app.utils - High Risk Alert sent to faculty successfully.
+2025-12-25T10:06:52 INFO werkzeug - 127.0.0.1 - - [25/Dec/2025 10:06:52] "POST /api/predict HTTP/1.1" 200 -

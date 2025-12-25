@@ -4,11 +4,15 @@ import joblib
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask
+from flask_mail import Mail  # NEW IMPORT
 from .limits import limiter
 from dotenv import load_dotenv
 
 # Add these imports for the class
 from sklearn.base import BaseEstimator, TransformerMixin
+
+# Define Global Extensions
+mail = Mail()  # Initialize Mail globally
 
 # Define the ColumnDropper class here so joblib can find it
 class ColumnDropper(BaseEstimator, TransformerMixin):
@@ -23,24 +27,19 @@ def create_app():
     load_dotenv()
 
     # --- Structured Logging Setup ---
-    # Console + rotating file logs at INFO level by default
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
     logger = logging.getLogger()
     if not logger.handlers:
         logger.setLevel(log_level)
-
-        formatter = logging.Formatter(
-            fmt='%(asctime)s %(levelname)s %(name)s - %(message)s',
-            datefmt='%Y-%m-%dT%H:%M:%S'
-        )
-
+        formatter = logging.Formatter(fmt='%(asctime)s %(levelname)s %(name)s - %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
+        
         # Console handler
         ch = logging.StreamHandler()
         ch.setLevel(log_level)
         ch.setFormatter(formatter)
         logger.addHandler(ch)
 
-        # Rotating file handler (logs/app.log)
+        # Rotating file handler
         logs_dir = os.path.join(os.getcwd(), 'logs')
         os.makedirs(logs_dir, exist_ok=True)
         fh = RotatingFileHandler(os.path.join(logs_dir, 'app.log'), maxBytes=1_000_000, backupCount=3)
@@ -48,38 +47,46 @@ def create_app():
         fh.setFormatter(formatter)
         logger.addHandler(fh)
     
-    # --- Validate Critical Environment Variables ---
-    required_env_vars = [
-        'GEMINI_API_KEY',
-        'FIREBASE_API_KEY',
-        'FIREBASE_AUTH_DOMAIN',
-        'FIREBASE_PROJECT_ID',
-        'FIREBASE_STORAGE_BUCKET',
-        'FIREBASE_MESSAGING_SENDER_ID',
-        'FIREBASE_APP_ID'
+    # --- Validate Environment Variables ---
+    # Critical variables (App will fail without these)
+    critical_vars = [
+        'GEMINI_API_KEY', 'FIREBASE_API_KEY', 'FIREBASE_AUTH_DOMAIN',
+        'FIREBASE_PROJECT_ID', 'FIREBASE_STORAGE_BUCKET',
+        'FIREBASE_MESSAGING_SENDER_ID', 'FIREBASE_APP_ID'
     ]
     
-    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
-    if missing_vars:
-        raise EnvironmentError(
-            f"\n{'='*60}\n"
-            f"ERROR: Missing required environment variables!\n"
-            f"{'='*60}\n"
-            f"Missing: {', '.join(missing_vars)}\n\n"
-            f"Please create a .env file with all required variables.\n"
-            f"See README.md for setup instructions.\n"
-            f"{'='*60}\n"
-        )
+    # Notification variables (App works, but alerts won't send)
+    mail_vars = ['MAIL_SERVER', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD']
     
-    logging.info("All required environment variables found.")
+    # Check critical vars
+    missing_critical = [var for var in critical_vars if not os.getenv(var)]
+    if missing_critical:
+        raise EnvironmentError(f"ERROR: Missing critical env vars: {', '.join(missing_critical)}")
+
+    # Check mail vars (Soft check)
+    missing_mail = [var for var in mail_vars if not os.getenv(var)]
+    if missing_mail:
+        logging.warning(f"Missing email configuration: {', '.join(missing_mail)}. Faculty alerts will not be sent.")
+
+    logging.info("Environment check complete.")
 
     app = Flask(__name__)
-    # Initialize rate limiter
+    
+    # --- Mail Configuration (For High-Risk Alerts) ---
+    app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+    app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+    app.config['MAIL_USE_TLS'] = True
+    app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+    app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
+
+    # Initialize Extensions
     try:
         limiter.init_app(app)
-        logging.info("Rate limiter initialized (60/min default per IP).")
+        mail.init_app(app)  # Bind mail to app
+        logging.info("Extensions (Limiter, Mail) initialized.")
     except Exception as e:
-        logging.warning(f"Rate limiter initialization failed: {e}")
+        logging.warning(f"Extension initialization failed: {e}")
 
     # --- Load Machine Learning Models ---
     try:
@@ -89,7 +96,6 @@ def create_app():
         logging.info("All models loaded successfully.")
     except FileNotFoundError:
         logging.warning("Model files not found! Make sure to run train_model.py first.")
-        # Exit or handle as appropriate
     except Exception as e:
         logging.exception(f"Error loading models: {e}")
 
@@ -99,7 +105,6 @@ def create_app():
             app.config['GRADE_AVERAGES'] = json.load(f)
         logging.info("Grade averages calculated and cached.")
     except FileNotFoundError:
-        # This is not critical, can be calculated on the fly if needed
         app.config['GRADE_AVERAGES'] = {}
         logging.info("Grade averages JSON not found. Will calculate on the fly.")
 
@@ -114,28 +119,23 @@ def create_app():
         "measurementId": os.getenv("FIREBASE_MEASUREMENT_ID")
     }
     app.config['FIREBASE_CONFIG'] = json.dumps(firebase_config)
-
-    # --- Gemini Configuration ---
     app.config['GEMINI_API_KEY'] = os.getenv("GEMINI_API_KEY")
 
-    # --- Register Blueprints (Routes) ---
-    # Import original routes.py file (for API endpoints)
+    # --- Register Blueprints ---
     from .routes import main_bp as api_routes_bp
-    app.register_blueprint(api_routes_bp)
-    logging.info("API routes blueprint registered.")
-    
-    # Import new modular route blueprints from views/ folder  
     from .views.auth import auth_bp
     from .views.dashboard import dashboard_bp
     from .views.assessment import assessment_bp
     from .views.history import history_bp
     from .views.other import other_bp
     
+    app.register_blueprint(api_routes_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(assessment_bp)
     app.register_blueprint(history_bp)
     app.register_blueprint(other_bp)
+    
     logging.info("All route blueprints registered successfully.")
 
     return app
