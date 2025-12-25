@@ -156,6 +156,12 @@ def generate_mentoring_advice(student_data, predicted_g3, risk_category, top_fea
     custom_prompt_text = student_data.get('customPrompt', '').strip()
     custom_prompt_section = f"User Request: '{custom_prompt_text}'" if custom_prompt_text else ""
 
+    # Adjust instructions based on whether user provided custom prompt
+    if custom_prompt_text:
+        task_instruction = f"IMPORTANT: Follow the user's request EXACTLY as stated. Adapt your tone, format, and style to match their instructions (e.g., if they request no emojis, don't use them; if they want brief bullets, be concise)."
+    else:
+        task_instruction = "Provide advice in 3 sections (### headings) with max 4 bullets each."
+    
     prompt = f"""
     ROLE: You are an {strategy['persona']}.
     STRATEGY: {strategy['focus']}
@@ -168,7 +174,7 @@ def generate_mentoring_advice(student_data, predicted_g3, risk_category, top_fea
     - Key Factors:
     {feature_list}
 
-    TASK: Provide advice in 3 sections (### headings) with max 4 bullets each.
+    TASK: {task_instruction}
     
     ### ⚡ Priority Actions
     (Advice specific to the {strategy['persona']})
