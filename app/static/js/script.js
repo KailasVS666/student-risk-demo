@@ -1,1011 +1,720 @@
-// =========================================================================
-// UI/UX UTILITY FUNCTIONS (For 10/10 Experience)
-// =========================================================================
-
 /**
- * Shows a temporary, non-intrusive toast notification.
- * @param {string} message - The message to display.
- * @param {('success'|'error'|'info')} type - The type of toast.
+ * Main Application Script
+ * Orchestrates all modules and initializes the application.
+ * Uses ES6 modules for clean separation of concerns.
  */
-function showToast(message, type = 'info') {
-    const toastContainer = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    
-    // Add to container and show
-    toastContainer.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 10);
 
-    // Hide and remove after 3 seconds
-    setTimeout(() => {
-        toast.classList.remove('show');
-        toast.addEventListener('transitionend', () => toast.remove());
-    }, 3000);
-}
+// ============================================================================
+// IMPORTS
+// ============================================================================
 
-/**
- * Manages the state of a primary button during an async operation.
- * @param {HTMLElement} button - The button element.
- * @param {boolean} isLoading - True to show spinner and disable, false otherwise.
- * @param {string} originalText - The original text to restore.
- */
-function setButtonLoading(button, isLoading, originalText = 'Submit') {
-    button.disabled = isLoading;
-    if (isLoading) {
-        button.innerHTML = `<span class="button-loader"></span>${button.id === 'generateAdviceBtn' ? 'Analyzing...' : 'Loading...'}`;
-        button.dataset.originalText = originalText;
-    } else {
-        button.innerHTML = originalText || button.dataset.originalText;
-    }
-}
+import APP_CONFIG from './config.js';
+import {
+  showToast,
+  setButtonLoading,
+  clearFieldError,
+  toggleVisibility,
+  setMultipleVisibility,
+  copyToClipboard,
+  safeGetElement
+} from './ui-utils.js';
 
+import {
+  gatherFormData,
+  validateStep,
+  populateFormWithData,
+  clearForm,
+  markFormDirty,
+  markFormClean
+} from './form-utils.js';
 
-// =========================================================================
-// WIZARD/FORM LOGIC
-// =========================================================================
+import {
+  initializeFirebase,
+  waitForAuthState,
+  saveProfile,
+  loadProfile,
+  loadProfileNames,
+  signInUser,
+  signUpUser,
+  signOutUser
+} from './firebase-utils.js';
 
-let currentStep = 0;
-const formSteps = document.querySelectorAll('.form-step');
-const progressSteps = document.querySelectorAll('.progress-step');
-const progressBarContainer = document.querySelector('.progress-bar-container');
-const nextBtn = document.getElementById('nextBtn');
-const prevBtn = document.getElementById('prevBtn');
-const generateAdviceBtn = document.getElementById('generateAdviceBtn');
+import {
+  predictRisk,
+  generatePDF,
+  downloadPDFFile
+} from './api.js';
 
-// Helper to update range values visually
-document.querySelectorAll('input[type="range"]').forEach(input => {
-    const valueSpan = document.getElementById(input.id + 'Value');
-    input.addEventListener('input', () => {
-        valueSpan.textContent = input.value;
-    });
-});
+import {
+  renderExplanationChart,
+  renderGradesChart,
+  renderProbaChart,
+  filterSensitiveFeatures,
+  destroyAllCharts
+} from './charts.js';
 
-// ---- Validation helpers ----
-function addFieldError(inputEl, message) {
-    if (!inputEl) return;
-    inputEl.classList.add('ring-2', 'ring-red-300', 'border-red-500');
-    // if an error element already exists, update it; else create
-    const key = `error-for-${inputEl.id}`;
-    let err = document.getElementById(key);
-    if (!err) {
-        err = document.createElement('p');
-        err.id = key;
-        err.className = 'text-xs text-red-600 mt-1';
-        // insert right after the input element
-        inputEl.parentElement.appendChild(err);
-    }
-    err.textContent = message || 'This field is required';
-}
+import {
+  WizardManager,
+  initializeWizard
+} from './wizard.js';
 
-function clearFieldError(inputEl) {
-    if (!inputEl) return;
-    inputEl.classList.remove('ring-2', 'ring-red-300', 'border-red-500');
-    const key = `error-for-${inputEl.id}`;
-    const err = document.getElementById(key);
-    if (err) err.remove();
-}
+import {
+  updateRiskBadge,
+  renderAdvice,
+  displayResults,
+  clearResults
+} from './results.js';
 
-function clearAllErrorsInStep(stepIndex) {
-    const stepEl = formSteps[stepIndex];
-    if (!stepEl) return;
-    stepEl.querySelectorAll('input, select, textarea').forEach(el => clearFieldError(el));
-}
+// ============================================================================
+// GLOBAL STATE
+// ============================================================================
 
-/**
- * Client-side validation for the current step: checks required fields exist.
- * Returns true if validation passes; otherwise annotates fields and returns false.
- */
-function validateStep(step) {
-    const requiredByStep = {
-        0: ['school','sex','age','address','famsize','Pstatus','famrel'],
-        1: ['Medu','Fedu','Mjob','Fjob','studytime','reason','guardian','schoolsup','famsup','paid','higher'],
-        2: ['activities','nursery','internet','romantic','traveltime','freetime','goout','Dalc','Walc','health','absences','failures','G1','G2']
-    };
+let wizard = null;
+let firebaseServices = null;
+let currentUserEmail = null;
+let lastShapValuesRaw = null;
+let currentAssessmentResults = null;
 
-    clearAllErrorsInStep(step);
-
-    const ids = requiredByStep[step] || [];
-    let firstInvalid = null;
-    ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        let valid = true;
-        if (el.tagName === 'SELECT' || el.type === 'text' || el.type === 'textarea') {
-            valid = (el.value ?? '').toString().trim().length > 0;
-        } else if (el.type === 'range' || el.type === 'number') {
-            valid = (el.value ?? '') !== '' && !Number.isNaN(Number(el.value));
-        } else {
-            valid = (el.value ?? '') !== '';
-        }
-        if (!valid) {
-            addFieldError(el, 'Please provide a value');
-            if (!firstInvalid) firstInvalid = el;
-        }
-    });
-
-    if (firstInvalid) {
-        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        showToast('Please complete the highlighted fields before continuing.', 'error');
-        return false;
-    }
-
-    // Optional: specific check on step 2 for G1/G2 minimum sensible values
-    if (step === 2) {
-        const g1 = Number(document.getElementById('G1')?.value ?? 0);
-        const g2 = Number(document.getElementById('G2')?.value ?? 0);
-        if (g1 < 0 || g2 < 0) {
-            addFieldError(document.getElementById('G1'), 'Must be >= 0');
-            addFieldError(document.getElementById('G2'), 'Must be >= 0');
-            showToast('Grades must be zero or positive.', 'error');
-            return false;
-        }
-    }
-    return true;
-}
-
-function updateWizard() {
-    // 1. Update Form Visibility
-    formSteps.forEach((step, index) => {
-        step.classList.toggle('active-step', index === currentStep);
-    });
-
-    // 2. Update Progress Steps
-    progressSteps.forEach((step, index) => {
-        step.classList.toggle('active', index === currentStep);
-        // Mark previous steps as complete (visually handled by the line CSS)
-        if (index < currentStep) {
-             step.classList.add('completed');
-        } else {
-             step.classList.remove('completed');
-        }
-    });
-
-    // 3. Update Progress Bar Line Animation (CSS Classes)
-    progressBarContainer.classList.remove('step-2', 'step-3');
-    if (currentStep >= 1) {
-        progressBarContainer.classList.add('step-2');
-    }
-    if (currentStep >= 2) {
-        progressBarContainer.classList.add('step-3');
-    }
-
-    // 4. Update Navigation Buttons
-    prevBtn.style.display = currentStep > 0 ? 'inline-flex' : 'none';
-
-    if (currentStep === formSteps.length - 1) {
-        // Last step
-        nextBtn.style.display = 'none';
-        generateAdviceBtn.disabled = false;
-    } else {
-        // Middle steps
-        nextBtn.style.display = 'inline-flex';
-        generateAdviceBtn.disabled = true;
-    }
-}
-
-nextBtn.addEventListener('click', () => {
-    if (!validateStep(currentStep)) return;
-    currentStep++;
-    updateWizard();
-});
-
-prevBtn.addEventListener('click', () => {
-    if (currentStep > 0) {
-        currentStep--;
-        updateWizard();
-    }
-});
-
-// Initialize the wizard on load
-updateWizard();
-
-// Clear errors when user edits fields
-document.querySelectorAll('#inputForm input, #inputForm select, #inputForm textarea').forEach(el => {
-    el.addEventListener('input', () => clearFieldError(el));
-    el.addEventListener('change', () => clearFieldError(el));
-});
-
-
-// =========================================================================
-// RESULTS & API INTERACTION LOGIC
-// =========================================================================
-
-// Global helper to get current user email (defined early, will be populated by Firebase)
-window.firebaseDb = null;
-window.firebaseAuth = null;
+// Make available globally for external access if needed
+window.wizard = null;
+window.currentAssessmentResults = null;
 window.currentUserEmail = null;
 
-window.getCurrentUserEmail = function() {
-    // Try multiple sources in order of reliability
-    if (window.currentUserEmail) return window.currentUserEmail;
-    if (window.firebaseAuth && window.firebaseAuth.currentUser) return window.firebaseAuth.currentUser.email;
-    return null;
-};
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
 
-// Placeholder for chart instances to allow easy destruction/update
-let explanationChartInstance = null;
-let gradesChartInstance = null;
-let probaChartInstance = null;
-// Keep the raw SHAP values from the backend so we can re-render when toggling sensitive features
-let lastShapValuesRaw = null;
+/**
+ * Initializes the entire application.
+ * Called when DOM is ready.
+ */
+async function initializeApp() {
+  console.log('Initializing AI Student Mentor application...');
 
-// The main function to handle prediction and advice generation
-document.getElementById('generateAdviceBtn').addEventListener('click', async () => {
-    // Gather form data (including the custom prompt)
-    const formData = gatherFormData();
-    if (!formData) return; // Basic check
+  // 1. Initialize Firebase
+  firebaseServices = initializeFirebase();
+  if (!firebaseServices) {
+    console.error('Failed to initialize Firebase. Auth features disabled.');
+    showToast('Firebase initialization failed. Some features may not work.', 'error');
+  }
 
-    // 1. UI State: Show Loading, Hide Results
-    document.getElementById('resultsSection').classList.remove('hidden');
-    document.getElementById('loadingSpinner').classList.remove('hidden');
-    document.getElementById('adviceContent').classList.add('hidden');
-    document.getElementById('explanationChartContainer').classList.add('hidden');
+  // 2. Initialize Form Wizard
+  wizard = initializeWizard({ totalSteps: 3 });
+  window.wizard = wizard;
+  if (!wizard) {
+    console.error('Failed to initialize wizard');
+    showToast('Form wizard failed to initialize', 'error');
+  }
+
+  // 3. Setup Form Event Listeners
+  setupFormEventListeners();
+
+  // 4. Setup Prediction & Results Event Listeners
+  setupPredictionEventListeners();
+
+  // 5. Setup Firebase Auth Event Listeners
+  if (firebaseServices) {
+    setupFirebaseAuthListeners();
+  }
+
+  // 6. Setup UI Event Listeners
+  setupUIEventListeners();
+
+  // 7. Setup Unsaved Changes Guard
+  setupUnsavedChangesGuard();
+
+  console.log('Application initialized successfully');
+}
+
+// ============================================================================
+// FORM EVENT LISTENERS
+// ============================================================================
+
+/**
+ * Sets up event listeners for form fields.
+ */
+function setupFormEventListeners() {
+  const inputForm = document.getElementById('inputForm');
+  if (!inputForm) return;
+
+  // Clear field errors on input
+  inputForm.querySelectorAll('input, select, textarea').forEach(field => {
+    field.addEventListener('input', () => {
+      clearFieldError(field);
+      markFormDirty();
+    });
+
+    field.addEventListener('change', () => {
+      clearFieldError(field);
+      markFormDirty();
+    });
+  });
+
+  // Clear Form Button
+  const clearFormBtn = safeGetElement('clearFormBtn', false);
+  if (clearFormBtn) {
+    clearFormBtn.addEventListener('click', () => {
+      clearForm();
+      clearResults();
+      markFormClean();
+    });
+  }
+}
+
+// ============================================================================
+// PREDICTION & RESULTS EVENT LISTENERS
+// ============================================================================
+
+/**
+ * Sets up event listeners for prediction and result display.
+ */
+function setupPredictionEventListeners() {
+  const generateAdviceBtn = safeGetElement('generateAdviceBtn', false);
+  if (!generateAdviceBtn) return;
+
+  generateAdviceBtn.addEventListener('click', async () => {
+    await handlePredictionRequest();
+  });
+}
+
+/**
+ * Handles the full prediction workflow.
+ * @private
+ */
+async function handlePredictionRequest() {
+  const generateAdviceBtn = safeGetElement('generateAdviceBtn', false);
+  const formData = gatherFormData();
+
+  if (!formData) {
+    showToast('Failed to gather form data', 'error');
+    return;
+  }
+
+  // Show loading state
+  if (generateAdviceBtn) {
     setButtonLoading(generateAdviceBtn, true, 'Generate Mentoring Advice');
+  }
 
-    try {
-        // 2. API Call 
-        const response = await fetch('/api/predict', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData)
-        });
-        
-        const data = await response.json();
+  setMultipleVisibility({
+    resultsSection: true,
+    loadingSpinner: true,
+    adviceContent: false,
+    explanationChartContainer: false
+  });
 
-        // 3. Handle Errors
-        if (!response.ok) {
-            throw new Error(data.error || 'Prediction failed due to server error.');
-        }
+  try {
+    // 1. Call prediction API
+    const result = await predictRisk(formData);
 
-        // 4. UI State: Hide Loading
-        document.getElementById('loadingSpinner').classList.add('hidden');
-        document.getElementById('adviceContent').classList.remove('hidden');
-        document.getElementById('explanationChartContainer').classList.remove('hidden');
-        showToast('Analysis complete!', 'success');
+    // 2. Update global state
+    currentAssessmentResults = {
+      predicted_grade: result.prediction,
+      risk_category: result.risk_category,
+      confidence: result.confidence,
+      mentoring_advice: result.mentoring_advice,
+      shap_values: result.shap_values
+    };
 
-        // 5. Update Risk Badge (CRITICAL UX IMPROVEMENT)
-        updateRiskBadge(data.risk_category, data.prediction, data.confidence); // risk_category is 'low'|'medium'|'high'
+    window.currentAssessmentResults = currentAssessmentResults;
 
-        // 6. Store results globally for PDF export
-        window.currentAssessmentResults = {
-            predicted_grade: data.prediction,
-            risk_category: data.risk_category,
-            confidence: data.confidence,
-            mentoring_advice: data.mentoring_advice,
-            shap_values: data.shap_values
-        };
-        
-        // Show PDF download button
-        const pdfBtn = document.getElementById('downloadPdfBtn');
-        if (pdfBtn) pdfBtn.style.display = 'flex';
-
-        // 7. Render Advice (Structure the output for 10/10 UX)
-        renderAdvice(data.mentoring_advice); // This should handle structured/markdown advice
-
-        // 8. Render Charts
-        if (data.probabilities) {
-            renderProbaChart(data.probabilities);
-        }
-        // Save raw SHAP values and render with current toggle state
-        lastShapValuesRaw = data.shap_values || [];
-        renderExplanationChart(lastShapValuesRaw);
-        renderGradesChart(formData.G1, formData.G2, data.prediction); // Pass G1, G2, and final prediction
-
-        // 9. Persist latest assessment results (respect Auto-save preference)
-        try {
-            const userEmail = window.getCurrentUserEmail();
-            const db = window.firebaseDb;
-            if (userEmail && db) {
-                const prefs = JSON.parse(localStorage.getItem(`prefs_${userEmail}`) || '{}');
-                const autoSaveEnabled = prefs.autoSave !== false; // default true
-                console.log('Auto-save preference:', autoSaveEnabled);
-                if (autoSaveEnabled) {
-                    const nameInput = document.getElementById('profileName');
-                    const profileName = (nameInput && nameInput.value && nameInput.value.trim())
-                        ? nameInput.value.trim()
-                        : `Assessment_${new Date().toISOString().slice(0,19).replace(/[T:]/g,'-')}`;
-
-                    console.log('Saving assessment results to profile:', profileName);
-                    const docRef = db.collection('profiles')
-                        .doc(userEmail)
-                        .collection('student_data')
-                        .doc(profileName);
-
-                    await docRef.set({
-                        // Core inputs that were used
-                        ...formData,
-                        // Results from the analysis
-                        predicted_grade: data.prediction,
-                        risk_category: data.risk_category,
-                        confidence: data.confidence,
-                        mentoring_advice: data.mentoring_advice || '',
-                        shap_values: data.shap_values || lastShapValuesRaw || [],
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-                    console.log('Assessment results saved successfully to:', profileName);
-                    showToast(`Assessment saved to "${profileName}"`, 'success');
-                } else {
-                    console.log('Auto-save is disabled in preferences');
-                }
-            } else {
-                console.warn('No user email available, skipping auto-save');
-            }
-        } catch (persistErr) {
-            console.error('Error saving assessment results:', persistErr);
-            showToast('Could not auto-save results', 'warning');
-        }
-
-    } catch (error) {
-        console.error('Prediction Error:', error);
-        showToast(`Error: ${error.message || 'Could not connect to the analysis engine.'}`, 'error');
-        // Restore UI state on error
-        document.getElementById('loadingSpinner').classList.add('hidden');
-        document.getElementById('adviceContent').classList.add('hidden');
-        document.getElementById('resultsSection').classList.remove('hidden'); // Keep section visible to show the error
-    } finally {
-        setButtonLoading(generateAdviceBtn, false);
-    }
-});
-
-
-/**
- * Gathers all form data into a structured object AND CALCULATES ENGINEERED FEATURES.
- */
-function gatherFormData() {
-    const data = {};
-    let g1_score = 0;
-    let g2_score = 0;
-
-    document.querySelectorAll('#inputForm select, #inputForm input').forEach(input => {
-        // Use the ID as the key (e.g., 'age', 'school', 'Medu')
-        if (input.type === 'range') {
-             const value = parseInt(input.value);
-             data[input.id] = value;
-             
-             // Capture G1 and G2 for engineered features
-             if (input.id === 'G1') g1_score = value;
-             if (input.id === 'G2') g2_score = value;
-        } else {
-             // Select and other inputs are strings
-             data[input.id] = input.value;
-        }
+    // 3. Hide loading
+    setMultipleVisibility({
+      loadingSpinner: false,
+      adviceContent: true,
+      explanationChartContainer: true
     });
 
-    // CRITICAL FIX: Add the two missing engineered features required by the ML model pipeline
-    data.average_grade = (g1_score + g2_score) / 2;
-    data.grade_change = g2_score - g1_score;
-    
-    // FIX: Include the custom prompt in the payload
-    data.customPrompt = document.getElementById('customPrompt').value.trim();
+    // 4. Render results
+    displayResults(result);
 
-    return data;
+    // 5. Render charts
+    if (result.probabilities) {
+      renderProbaChart(result.probabilities);
+    }
+
+    lastShapValuesRaw = result.shap_values || [];
+    renderExplanationChart(lastShapValuesRaw);
+    renderGradesChart(formData.G1, formData.G2, result.prediction);
+
+    // 6. Show PDF button
+    const pdfBtn = safeGetElement('downloadPdfBtn', false);
+    if (pdfBtn) {
+      pdfBtn.style.display = 'flex';
+    }
+
+    // 7. Persist to Firebase if auto-save is enabled
+    await persistAssessmentResults(formData, result);
+
+    showToast('Analysis complete!', 'success');
+    markFormClean();
+  } catch (error) {
+    console.error('Prediction error:', error);
+    showToast(`Error: ${error.message}`, 'error');
+    setMultipleVisibility({
+      loadingSpinner: false,
+      adviceContent: false
+    });
+  } finally {
+    if (generateAdviceBtn) {
+      setButtonLoading(generateAdviceBtn, false, 'Generate Mentoring Advice');
+    }
+  }
 }
 
 /**
- * Dynamically updates the Risk Level Badge color and text.
- * @param {string} category - 'low', 'medium', or 'high'.
- * @param {number} finalGrade - The predicted final grade (G3).
+ * Persists assessment results to Firebase.
+ * @param {Object} formData - The form data.
+ * @param {Object} result - The prediction result.
+ * @private
  */
-function updateRiskBadge(category, finalGrade, confidence) {
-    const badge = document.getElementById('riskLevelBadge');
-    const levelText = document.getElementById('riskLevel');
-    const descriptor = document.getElementById('riskDescriptor');
-    const confText = document.getElementById('riskConfidence');
+async function persistAssessmentResults(formData, result) {
+  if (!firebaseServices || !currentUserEmail) {
+    return; // Firebase not available or user not logged in
+  }
 
-    // Reset classes
-    badge.className = 'p-4 rounded-xl shadow-lg text-center transition duration-500';
+  try {
+    const { db } = firebaseServices;
+    const timestamp = new Date().toISOString();
+    const docName = `assessment_${timestamp.replace(/[:.]/g, '-')}`;
 
-    switch (category.toLowerCase()) {
-        case 'low':
-            badge.classList.add('risk-low');
-            levelText.textContent = 'Low Risk';
-            descriptor.textContent = `Predicted Final Grade (G3): ${finalGrade}`;
-            break;
-        case 'medium':
-            badge.classList.add('risk-medium');
-            levelText.textContent = 'Medium Risk';
-            descriptor.textContent = `Predicted Final Grade (G3): ${finalGrade}`;
-            break;
-        case 'high':
-        default:
-            badge.classList.add('risk-high');
-            levelText.textContent = 'High Risk';
-            descriptor.textContent = `Predicted Final Grade (G3): ${finalGrade}`;
-            break;
-    }
-
-    if (confText) {
-        const pct = typeof confidence === 'number' ? Math.round(confidence * 100) : null;
-        confText.textContent = pct !== null ? `Model confidence: ${pct}% for this risk class` : '';
-    }
-}
-
-/**
- * Renders the AI advice, handling basic markdown for structure.
- * @param {string} adviceText - The text from the API, possibly with Markdown-like formatting.
- */
-function renderAdvice(adviceText) {
-    const outputDiv = document.getElementById('adviceOutput');
-    
-    // Convert markdown headers (###) to <h3> tags
-    let htmlContent = adviceText.replace(/###\s+(.*)/g, '<h3>$1</h3>');
-    
-    // Convert strong text (**text**) to <strong> for better prose styling
-    htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Simple conversion of markdown lists to HTML lists
-    htmlContent = htmlContent
-        .replace(/\*\s/g, '<li>') // Convert '*' bullets to list items
-        .replace(/\n\n/g, '<p>')  // Convert double newlines to paragraphs
-        .replace(/\n/g, '<br>');  // Convert single newlines to breaks
-
-    // Wrap list items in <ul> if present (simple check)
-    outputDiv.innerHTML = htmlContent;
-}
-
-
-/**
- * Initializes/updates the Key Factors chart (SHAP values).
- * @param {object} shapValues - The feature importance data.
- */
-function renderExplanationChart(shapValues) {
-    if (explanationChartInstance) {
-        explanationChartInstance.destroy();
-    }
-
-    // Filter sensitive features based on toggle state
-    const toggle = document.getElementById('toggleSensitive');
-    const biasNotice = document.getElementById('biasNotice');
-    const showSensitive = toggle ? toggle.checked : false;
-    const filtered = filterSensitiveFeatures(shapValues, showSensitive);
-
-    // Show a notice if sensitive features were hidden and at least one was filtered out
-    if (biasNotice) {
-        const filteredOutCount = shapValues.length - filtered.length;
-        biasNotice.style.display = (!showSensitive && filteredOutCount > 0) ? 'block' : 'none';
-    }
-
-    // Use filtered values for charting
-    const valuesForChart = filtered.length > 0 ? filtered : shapValues;
-
-    // Assuming shapValues is an array of { feature: string, importance: number }
-    const features = valuesForChart.map(f => f.feature);
-    const importance = valuesForChart.map(f => f.importance);
-    const backgroundColors = importance.map(i => i > 0 ? '#10B981' : '#EF4444'); // Green for positive impact, Red for negative
-
-    const ctx = document.getElementById('explanationChart').getContext('2d');
-    explanationChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: features,
-            datasets: [{
-                label: 'Impact on Risk Score',
-                data: importance,
-                backgroundColor: backgroundColors,
-                borderColor: backgroundColors,
-                borderWidth: 1
-            }]
-        },
-        options: {
-            indexAxis: 'y', // Horizontal bars
-            responsive: true,
-            scales: {
-                x: {
-                    beginAtZero: false,
-                    title: {
-                        display: true,
-                        text: 'SHAP Value (Impact on Prediction)'
-                    }
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        title: (context) => context[0].label,
-                        label: (context) => {
-                             // A brief, non-technical explanation based on impact
-                             const value = context.parsed.x;
-                             const impact = value > 0 ? 'increases' : 'decreases';
-                             const sign = value > 0 ? '+' : '';
-                             return `Value: ${sign}${value.toFixed(2)}. This ${impact} the predicted risk.`;
-                        }
-                    }
-                }
-            }
-        }
+    await saveProfile(db, currentUserEmail, docName, {
+      ...formData,
+      prediction: result.prediction,
+      risk_category: result.risk_category,
+      confidence: result.confidence,
+      timestamp
     });
 
-    // Simple textual summary (UX enhancement)
-    const summaryEl = document.getElementById('shapSummary');
-    if (valuesForChart.length > 0) {
-        const topFeature = valuesForChart[0].feature;
-        const topImpact = valuesForChart[0].importance > 0 ? 'increase' : 'decrease';
-        summaryEl.textContent = `Summary: The strongest factor influencing this prediction was the student's ${topFeature}, which is associated with a predicted ${topImpact} in risk level.`;
+    console.log('Assessment persisted to Firebase');
+  } catch (error) {
+    console.warn('Failed to persist assessment:', error);
+    // Don't fail the entire flow if persistence fails
+  }
+}
+
+// ============================================================================
+// FIREBASE AUTH EVENT LISTENERS
+// ============================================================================
+
+/**
+ * Sets up Firebase authentication event listeners.
+ * @private
+ */
+function setupFirebaseAuthListeners() {
+  if (!firebaseServices) return;
+
+  const { auth, db } = firebaseServices;
+
+  // Auth state listener
+  auth.onAuthStateChanged(async user => {
+    if (user) {
+      // User logged in
+      currentUserEmail = user.email;
+      window.currentUserEmail = user.email;
+
+      const userEmailSpan = safeGetElement('user-email', false);
+      if (userEmailSpan) {
+        userEmailSpan.textContent = user.email;
+      }
+
+      setMultipleVisibility({
+        'auth-container': false,
+        'app': true
+      });
+
+      // Load user's profiles
+      await loadUserProfiles(db, user.email);
     } else {
-        summaryEl.textContent = 'Summary: No non-sensitive factors were among the top contributors for this prediction.';
+      // User logged out
+      currentUserEmail = null;
+      window.currentUserEmail = null;
+
+      const userEmailSpan = safeGetElement('user-email', false);
+      if (userEmailSpan) {
+        userEmailSpan.textContent = '';
+      }
+
+      setMultipleVisibility({
+        'auth-container': true,
+        'app': false
+      });
+
+      destroyAllCharts();
+      clearResults();
     }
+  });
+
+  // Login button
+  const loginBtn = safeGetElement('loginBtn', false);
+  if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+      await handleLogin(auth);
+    });
+  }
+
+  // Signup button
+  const signupBtn = safeGetElement('signupBtn', false);
+  if (signupBtn) {
+    signupBtn.addEventListener('click', async () => {
+      await handleSignUp(auth);
+    });
+  }
+
+  // Logout button
+  const logoutBtn = safeGetElement('logoutBtn', false);
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      await handleLogout(auth);
+    });
+  }
+
+  // Profile save button
+  const saveProfileBtn = safeGetElement('saveProfileBtn', false);
+  if (saveProfileBtn) {
+    saveProfileBtn.addEventListener('click', async () => {
+      await handleProfileSave(db);
+    });
+  }
+
+  // Profile load button
+  const loadProfileBtn = safeGetElement('loadProfileBtn', false);
+  if (loadProfileBtn) {
+    loadProfileBtn.addEventListener('click', async () => {
+      await handleProfileLoad(db);
+    });
+  }
 }
 
 /**
- * Filters out sensitive features from SHAP results when showSensitive is false.
- * Sensitivity heuristic matches on common attribute names in the display string.
- * @param {Array<{feature:string, importance:number}>} shapValues
- * @param {boolean} showSensitive
+ * Handles user login.
+ * @param {Object} auth - Firebase auth instance.
+ * @private
  */
-function filterSensitiveFeatures(shapValues, showSensitive) {
-    if (showSensitive) return shapValues || [];
-    const sensitiveKeywords = ['sex', 'gender', 'age', 'guardian', 'address', 'famsize', 'pstatus', 'mjob', 'fjob', 'romantic'];
-    return (shapValues || []).filter(item => {
-        const name = (item.feature || '').toString().toLowerCase();
-        return !sensitiveKeywords.some(kw => name.includes(kw));
-    });
+async function handleLogin(auth) {
+  const emailInput = safeGetElement('email', false);
+  const passwordInput = safeGetElement('password', false);
+  const authError = safeGetElement('auth-error', false);
+
+  if (!emailInput || !passwordInput) return;
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || !password) {
+    if (authError) authError.textContent = 'Please enter email and password';
+    return;
+  }
+
+  if (authError) authError.textContent = '';
+
+  try {
+    await signInUser(auth, email, password);
+    showToast(APP_CONFIG.MESSAGES.LOGGED_IN, 'success');
+  } catch (error) {
+    const message = error.message || 'Login failed';
+    if (authError) authError.textContent = message;
+    showToast(message, 'error');
+  }
 }
 
 /**
- * Initializes/updates the Grades Comparison chart.
- * @param {number} G1 - First Grade.
- * @param {number} G2 - Second Grade.
- * @param {number} G3 - Predicted Final Grade.
+ * Handles user signup.
+ * @param {Object} auth - Firebase auth instance.
+ * @private
  */
-function renderGradesChart(G1, G2, G3) {
-    if (gradesChartInstance) {
-        gradesChartInstance.destroy();
-    }
-    
-    const ctx = document.getElementById('gradesChart').getContext('2d');
-    gradesChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['G1 (First Period)', 'G2 (Second Period)', 'G3 (Predicted Final)'],
-            datasets: [{
-                label: 'Student Grades (out of 20)',
-                data: [G1, G2, G3],
-                borderColor: '#4F46E5', // Indigo-600
-                backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                fill: true,
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 20
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: { mode: 'index', intersect: false }
-            }
-        }
-    });
+async function handleSignUp(auth) {
+  const emailInput = safeGetElement('email', false);
+  const passwordInput = safeGetElement('password', false);
+  const authError = safeGetElement('auth-error', false);
+
+  if (!emailInput || !passwordInput) return;
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || !password) {
+    if (authError) authError.textContent = 'Please enter email and password';
+    return;
+  }
+
+  if (authError) authError.textContent = '';
+
+  try {
+    await signUpUser(auth, email, password);
+    showToast(APP_CONFIG.MESSAGES.SIGNED_UP, 'success');
+  } catch (error) {
+    const message = error.message || 'Signup failed';
+    if (authError) authError.textContent = message;
+    showToast(message, 'error');
+  }
 }
 
 /**
- * Renders a small probability bar chart for classes.
- * @param {object} probMap - e.g., { High: 0.12, Medium: 0.68, Low: 0.20 }
+ * Handles user logout.
+ * @param {Object} auth - Firebase auth instance.
+ * @private
  */
-function renderProbaChart(probMap) {
-    if (probaChartInstance) {
-        probaChartInstance.destroy();
-    }
-
-    const labelsOrder = ['High', 'Medium', 'Low'];
-    const dataVals = labelsOrder.map(k => (probMap[k] ?? 0) * 100);
-    const colors = labelsOrder.map(k => k === 'High' ? '#EF4444' : k === 'Medium' ? '#F59E0B' : '#10B981');
-
-    const ctx = document.getElementById('probaChart').getContext('2d');
-    probaChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labelsOrder,
-            datasets: [{
-                label: 'Class Probability (%)',
-                data: dataVals,
-                backgroundColor: colors,
-                borderColor: colors,
-                borderWidth: 1
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            scales: {
-                x: { beginAtZero: true, max: 100, ticks: { callback: (v) => v + '%' } }
-            },
-            plugins: { legend: { display: false } }
-        }
-    });
+async function handleLogout(auth) {
+  try {
+    await signOutUser(auth);
+    showToast(APP_CONFIG.MESSAGES.LOGGED_OUT, 'info');
+  } catch (error) {
+    console.error('Logout error:', error);
+    showToast(APP_CONFIG.MESSAGES.LOGOUT_ERROR, 'error');
+  }
 }
 
+/**
+ * Handles profile save.
+ * @param {Object} db - Firestore database instance.
+ * @private
+ */
+async function handleProfileSave(db) {
+  const saveBtn = safeGetElement('saveProfileBtn', false);
+  const profileNameInput = safeGetElement('profileName', false);
 
-// =========================================================================
-// FIREBASE AND AUTHENTICATION LOGIC (FULLY FIXED)
-// =========================================================================
-(function() {
+  if (!currentUserEmail) {
+    showToast(APP_CONFIG.MESSAGES.NO_AUTH, 'error');
+    return;
+  }
 
-    if (typeof firebase === 'undefined' || typeof FIREBASE_CONFIG === 'undefined') {
-        console.error("Firebase SDK or FIREBASE_CONFIG is missing. App cannot start.");
-        showToast("Error: Firebase config missing.", 'error');
-        return;
+  if (!profileNameInput) return;
+
+  const profileName = profileNameInput.value.trim();
+  if (!profileName) {
+    showToast(APP_CONFIG.MESSAGES.PROFILE_NAME_REQUIRED, 'error');
+    return;
+  }
+
+  const profileData = gatherFormData();
+  if (!profileData) {
+    showToast('Failed to gather form data', 'error');
+    return;
+  }
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.dataset.originalText = saveBtn.innerText;
+    saveBtn.innerText = APP_CONFIG.BUTTON_TEXT.SAVING;
+  }
+
+  try {
+    await saveProfile(db, currentUserEmail, profileName, profileData);
+    showToast(APP_CONFIG.MESSAGES.PROFILE_SAVED(profileName), 'success');
+    await loadUserProfiles(db, currentUserEmail);
+    markFormClean();
+  } catch (error) {
+    console.error('Error saving profile:', error);
+    showToast(APP_CONFIG.MESSAGES.SAVE_ERROR, 'error');
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerText = saveBtn.dataset.originalText || APP_CONFIG.BUTTON_TEXT.SAVE_PROFILE;
     }
-    
-    let config = FIREBASE_CONFIG;
-    if (typeof config === 'string') {
-        try {
-            config = JSON.parse(config);
-        } catch (e) {
-            console.error("Error parsing FIREBASE_CONFIG string:", e);
-            showToast("Error initializing Firebase config.", 'error');
-            return;
-        }
+  }
+}
+
+/**
+ * Handles profile load.
+ * @param {Object} db - Firestore database instance.
+ * @private
+ */
+async function handleProfileLoad(db) {
+  const loadBtn = safeGetElement('loadProfileBtn', false);
+  const selectElement = safeGetElement('loadProfileSelect', false);
+
+  if (!selectElement) return;
+
+  const profileName = selectElement.value;
+  if (!profileName) {
+    showToast(APP_CONFIG.MESSAGES.NO_PROFILE_SELECTED, 'info');
+    return;
+  }
+
+  if (!currentUserEmail) {
+    showToast(APP_CONFIG.MESSAGES.NO_AUTH, 'error');
+    return;
+  }
+
+  if (loadBtn) {
+    loadBtn.disabled = true;
+    loadBtn.dataset.originalText = loadBtn.innerText;
+    loadBtn.innerText = APP_CONFIG.BUTTON_TEXT.LOADING;
+  }
+
+  try {
+    const profileData = await loadProfile(db, currentUserEmail, profileName);
+    populateFormWithData(profileData);
+    showToast(APP_CONFIG.MESSAGES.PROFILE_LOADED(profileName), 'success');
+    safeGetElement('profileName', false).value = profileName;
+    markFormClean();
+  } catch (error) {
+    console.error('Error loading profile:', error);
+    showToast(APP_CONFIG.MESSAGES.LOAD_ERROR, 'error');
+  } finally {
+    if (loadBtn) {
+      loadBtn.disabled = false;
+      loadBtn.innerText = loadBtn.dataset.originalText || APP_CONFIG.BUTTON_TEXT.LOAD_PROFILE;
     }
-    
-    if (!config || !config.projectId) {
-        console.error("Firebase config missing projectId.");
-        showToast("Firebase project ID missing. Save/Load disabled.", 'error');
-        return;
-    }
+  }
+}
 
-    // --- Initialize Firebase Services ---
-    if (!firebase.apps.length) {
-        firebase.initializeApp(config);
-        console.log("Firebase initialized successfully.");
-    }
-    const db = firebase.firestore();
-    const auth = firebase.auth();
+/**
+ * Loads user's saved profiles into dropdown.
+ * @param {Object} db - Firestore database instance.
+ * @param {string} userEmail - User's email.
+ * @private
+ */
+async function loadUserProfiles(db, userEmail) {
+  const selectElement = safeGetElement('loadProfileSelect', false);
+  if (!selectElement) return;
 
-    // Make available globally (these were defined earlier but assign here)
-    window.firebaseDb = db;
-    window.firebaseAuth = auth;
+  selectElement.innerHTML = '<option value="">- Select a profile -</option>';
 
-    // --- Get UI Elements (with null checks for pages that don't have auth UI) ---
-    const authContainer = document.getElementById('auth-container');
-    const appContainer = document.getElementById('app');
-    const userEmailSpan = document.getElementById('user-email');
-    const authError = document.getElementById('auth-error');
-    const loginBtn = document.getElementById('loginBtn');
-    const signupBtn = document.getElementById('signupBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    // --- Auth State Variable ---
-    let userEmail = null; // This will be set to the *actual* logged-in user's email
-    
-    // Helper function to get current user email (used by auto-save)
-    // --- PRIMARY AUTHENTICATION LISTENER ---
-    // This function runs on page load and whenever login state changes
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            // User is SIGNED IN
-            userEmail = user.email;
-            window.currentUserEmail = user.email; // Make available globally
-            if (userEmailSpan) userEmailSpan.textContent = userEmail;
-            
-            // Show the app, hide the login form (only if these elements exist)
-            if (appContainer) appContainer.classList.remove('hidden');
-            if (authContainer) authContainer.classList.add('hidden');
-            
-            // IMPORTANT: Load profiles *after* we know who the user is
-            loadProfiles();
-
-        } else {
-            // User is SIGNED OUT
-            userEmail = null;
-            window.currentUserEmail = null;
-            if (userEmailSpan) userEmailSpan.textContent = '';
-            
-            // Show the login form, hide the app (only if these elements exist)
-            if (appContainer) appContainer.classList.add('hidden');
-            if (authContainer) authContainer.classList.remove('hidden');
-        }
+  try {
+    const profileNames = await loadProfileNames(db, userEmail);
+    profileNames.forEach(name => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      selectElement.appendChild(option);
     });
 
-    // --- Auth Form Listeners (only attach if elements exist) ---
-    if (loginBtn) {
-        loginBtn.addEventListener('click', () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            if (authError) authError.textContent = ''; // Clear previous errors
-
-            auth.signInWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    showToast('Logged in successfully!', 'success');
-                    // onAuthStateChanged will handle hiding the form
-                })
-                .catch(error => {
-                    if (authError) authError.textContent = error.message;
-                });
-        });
+    if (profileNames.length > 0) {
+      showToast(APP_CONFIG.MESSAGES.PROFILES_LOADED, 'info');
     }
+  } catch (error) {
+    console.error('Error loading profiles:', error);
+    showToast(APP_CONFIG.MESSAGES.PROFILES_LOAD_ERROR, 'error');
+  }
+}
 
-    if (signupBtn) {
-        signupBtn.addEventListener('click', () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            if (authError) authError.textContent = ''; // Clear previous errors
+// ============================================================================
+// UI EVENT LISTENERS
+// ============================================================================
 
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    showToast('Account created! You are now logged in.', 'success');
-                    // onAuthStateChanged will handle hiding the form
-                })
-                .catch(error => {
-                    if (authError) authError.textContent = error.message;
-                });
-        });
-    }
+/**
+ * Sets up UI-specific event listeners.
+ */
+function setupUIEventListeners() {
+  // Sensitive feature toggle
+  const toggleSensitive = safeGetElement('toggleSensitive', false);
+  if (toggleSensitive) {
+    toggleSensitive.addEventListener('change', () => {
+      if (lastShapValuesRaw) {
+        const showSensitive = toggleSensitive.checked;
+        renderExplanationChart(lastShapValuesRaw, showSensitive);
+      }
+    });
+  }
 
-    // --- Logout Button ---
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            auth.signOut().then(() => {
-                showToast('Logged out successfully.', 'info');
-                // onAuthStateChanged will automatically show the login screen
-            }).catch((error) => {
-                console.error("Logout Error:", error);
-                showToast('Error logging out.', 'error');
-            });
-        });
-    }
+  // Copy advice button
+  const copyAdviceBtn = safeGetElement('copyAdviceBtn', false);
+  if (copyAdviceBtn) {
+    copyAdviceBtn.addEventListener('click', async () => {
+      const adviceOutput = safeGetElement('adviceOutput', false);
+      if (adviceOutput) {
+        await copyToClipboard(adviceOutput.innerText, 'Advice copied to clipboard!');
+      }
+    });
+  }
 
+  // Download PDF button
+  const downloadPdfBtn = safeGetElement('downloadPdfBtn', false);
+  if (downloadPdfBtn) {
+    downloadPdfBtn.addEventListener('click', async () => {
+      await handlePDFDownload();
+    });
+  }
+}
 
-    // --- Profile Save/Load Handlers (Now use the correct userEmail) ---
-    const saveProfileBtn = document.getElementById('saveProfileBtn');
-    if (saveProfileBtn) {
-        saveProfileBtn.addEventListener('click', async () => {
-            const saveBtn = document.getElementById('saveProfileBtn');
-            if (!userEmail) {
-                showToast('You must be logged in to save a profile.', 'error');
-                return;
-            }
-            
-            const profileName = document.getElementById('profileName').value.trim();
-        if (!profileName) {
-            showToast('Please enter a name for the profile.', 'error');
-            return;
-        }
-        
-        const profileData = gatherFormData();
+/**
+ * Handles PDF download workflow.
+ * @private
+ */
+async function handlePDFDownload() {
+  const downloadPdfBtn = safeGetElement('downloadPdfBtn', false);
 
-        try {
-            // UI: prevent double submits
-            if (saveBtn) { saveBtn.disabled = true; saveBtn.dataset.originalText = saveBtn.innerText; saveBtn.innerText = 'Saving...'; }
-            // This now correctly uses the logged-in user's email
-            const docRef = db.collection('profiles')
-                .doc(userEmail)
-                .collection('student_data')
-                .doc(profileName);
+  if (!currentAssessmentResults) {
+    showToast(APP_CONFIG.MESSAGES.NO_ASSESSMENT_RESULTS, 'error');
+    return;
+  }
 
-            const existing = await docRef.get();
-            if (existing.exists) {
-                await docRef.set({
-                    ...profileData,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-            } else {
-                await docRef.set({
-                    ...profileData,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-            }
-            showToast(`Profile \"${profileName}\" saved successfully!`, 'success');
-            loadProfiles(); // Refresh the dropdown
-            window.__formDirty = false; // reset unsaved changes flag
-        } catch (error) {
-            console.error("Error saving profile: ", error);
-            showToast('Error saving profile.', 'error');
-        } finally {
-            if (saveBtn) { saveBtn.disabled = false; saveBtn.innerText = saveBtn.dataset.originalText || 'Save Profile'; }
-        }
-        });
-    }
+  if (downloadPdfBtn) {
+    downloadPdfBtn.disabled = true;
+    downloadPdfBtn.textContent = APP_CONFIG.BUTTON_TEXT.PDF_GENERATING;
+  }
 
-    const loadProfileBtn = document.getElementById('loadProfileBtn');
-    if (loadProfileBtn) {
-        loadProfileBtn.addEventListener('click', async (e) => {
-            const btn = e.currentTarget;
-            const selectedProfileName = document.getElementById('loadProfileSelect').value;
-            if (!selectedProfileName) {
-                showToast('Please select a profile to load.', 'info');
-                return;
-            }
-            try {
-                btn.disabled = true;
-                btn.dataset.originalText = btn.innerText;
-                btn.innerText = 'Loading...';
-                await loadProfile(selectedProfileName);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = btn.dataset.originalText || 'Load Profile';
-            }
-        });
-    }
-
-
-    /**
-     * Fetches the list of saved profiles and populates the dropdown.
-     */
-    async function loadProfiles() {
-        const select = document.getElementById('loadProfileSelect');
-        select.innerHTML = '<option value="">- Select a profile -</option>'; // Clear
-
-        if (!userEmail) return; // Don't run if user is logged out
-
-        try {
-            // This now correctly loads from the logged-in user's collection
-            const snapshot = await db.collection('profiles').doc(userEmail).collection('student_data').get();
-            
-            if (snapshot.empty) {
-                console.log("No saved profiles found for this user.");
-                return;
-            }
-
-            snapshot.forEach(doc => {
-                const option = document.createElement('option');
-                option.value = doc.id;
-                option.textContent = doc.id;
-                select.appendChild(option);
-            });
-            showToast('Saved profiles loaded.', 'info');
-        } catch (error) {
-            console.error("Error loading profiles: ", error);
-            // This error will happen if Firestore rules are not set correctly
-            showToast('Could not load profiles (check permissions).', 'error');
-        }
-    }
-
-    /**
-     * Loads a specific profile's data into the form inputs.
-     * @param {string} profileName - The name of the profile to load.
-     */
-    async function loadProfile(profileName) {
-        if (!userEmail) return;
-
-        try {
-            const doc = await db.collection('profiles').doc(userEmail).collection('student_data').doc(profileName).get();
-            if (doc.exists) {
-                const data = doc.data();
-                
-                for (const key in data) {
-                    const input = document.getElementById(key);
-                    if (input) {
-                        if (input.tagName === 'SELECT') {
-                            input.value = data[key];
-                        } 
-                        else if (input.type === 'range') {
-                            input.value = data[key];
-                            const valueSpan = document.getElementById(key + 'Value');
-                            if (valueSpan) valueSpan.textContent = data[key];
-                        }
-                        else if (input.tagName === 'TEXTAREA' && key === 'customPrompt') {
-                            input.value = data[key];
-                        }
-                    }
-                }
-                // Set the profile name in the input box
-                document.getElementById('profileName').value = profileName;
-                showToast(`Profile "${profileName}" loaded!`, 'success');
-            } else {
-                showToast(`Profile "${profileName}" not found.`, 'error');
-            }
-        } catch (error) {
-            console.error("Error loading profile: ", error);
-            showToast('Error loading profile.', 'error');
-        }
-    }
-
-    // --- Misc Button Wrappers ---
-    const clearFormBtn = document.getElementById('clearFormBtn');
-    if (clearFormBtn) {
-        clearFormBtn.addEventListener('click', () => {
-            document.querySelectorAll('#inputForm select').forEach(select => select.selectedIndex = 0);
-            document.querySelectorAll('#inputForm input[type="range"]').forEach(range => {
-                range.value = range.getAttribute('value'); // Reset to default
-                const valueSpan = document.getElementById(range.id + 'Value');
-                if (valueSpan) valueSpan.textContent = range.value;
-            });
-            document.getElementById('customPrompt').value = '';
-            document.getElementById('profileName').value = 'new_student';
-            showToast('Form cleared.', 'info');
-        });
-    }
-
-    const copyAdviceBtn = document.getElementById('copyAdviceBtn');
-    if (copyAdviceBtn) {
-        copyAdviceBtn.addEventListener('click', () => {
-            const adviceText = document.getElementById('adviceOutput').innerText;
-            if (adviceText) {
-                navigator.clipboard.writeText(adviceText);
-                showToast('Advice copied to clipboard!', 'info');
-            }
-        });
-    }
-
-    // --- PDF Download from Current Results ---
-    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+  try {
+    const pdfBlob = await generatePDF(currentAssessmentResults);
+    downloadPDFFile(pdfBlob, `student_report_${Date.now()}.pdf`);
+    showToast(APP_CONFIG.MESSAGES.PDF_SUCCESS, 'success');
+  } catch (error) {
+    console.error('PDF download error:', error);
+    showToast(APP_CONFIG.MESSAGES.PDF_ERROR, 'error');
+  } finally {
     if (downloadPdfBtn) {
-        downloadPdfBtn.addEventListener('click', async () => {
-            if (!window.currentAssessmentResults) {
-                showToast('No assessment results available. Please run an analysis first.', 'error');
-                return;
-            }
-
-            try {
-                downloadPdfBtn.disabled = true;
-                downloadPdfBtn.textContent = 'Generating...';
-
-                const response = await fetch('/generate-pdf', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(window.currentAssessmentResults)
-                });
-
-                if (!response.ok) throw new Error('PDF generation failed');
-
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `student_report_${Date.now()}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-                showToast('PDF downloaded successfully!', 'success');
-            } catch (error) {
-                console.error('PDF download error:', error);
-                showToast('Error generating PDF', 'error');
-            } finally {
-                downloadPdfBtn.disabled = false;
-                downloadPdfBtn.innerHTML = `
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                    </svg>
-                    Download PDF Report
-                `;
-            }
-        });
+      downloadPdfBtn.disabled = false;
+      downloadPdfBtn.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+        </svg>
+        Download PDF Report
+      `;
     }
+  }
+}
 
-})();
+// ============================================================================
+// UNSAVED CHANGES GUARD
+// ============================================================================
 
-// =========================================================================
-// SENSITIVE FEATURE TOGGLE BINDING
-// =========================================================================
+/**
+ * Sets up warning for unsaved changes.
+ * @private
+ */
+function setupUnsavedChangesGuard() {
+  const inputForm = document.getElementById('inputForm');
+  if (!inputForm) return;
+
+  window.__formDirty = false;
+
+  // Track form changes
+  inputForm.addEventListener('input', () => {
+    markFormDirty();
+  });
+
+  // Warn before unload
+  window.addEventListener('beforeunload', (e) => {
+    if (window.__formDirty) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  // Clear dirty flag on successful submission
+  const generateAdviceBtn = safeGetElement('generateAdviceBtn', false);
+  if (generateAdviceBtn) {
+    generateAdviceBtn.addEventListener('click', () => {
+      markFormClean();
+    });
+  }
+}
+
+// ============================================================================
+// APP STARTUP
+// ============================================================================
+
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    const toggle = document.getElementById('toggleSensitive');
-    if (toggle) {
-        toggle.addEventListener('change', () => {
-            if (lastShapValuesRaw) {
-                renderExplanationChart(lastShapValuesRaw);
-            }
-        });
-    }
-    // Unsaved changes guard for assessment form
-    const inputForm = document.getElementById('inputForm');
-    if (inputForm) {
-        window.__formDirty = false;
-        inputForm.addEventListener('input', () => { window.__formDirty = true; });
-        window.addEventListener('beforeunload', (e) => {
-            if (window.__formDirty) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        });
-        const submitBtn = document.getElementById('generateAdviceBtn');
-        if (submitBtn) {
-            submitBtn.addEventListener('click', () => { window.__formDirty = false; });
-        }
-        const clearBtn = document.getElementById('clearFormBtn');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', () => { window.__formDirty = false; });
-        }
-    }
+  initializeApp();
 });
+
+// Export for debugging/testing
+export {
+  initializeApp,
+  handlePredictionRequest,
+  handleLogin,
+  handleSignUp,
+  handleLogout
+};

@@ -200,9 +200,38 @@ def generate_mentoring_advice(student_data, predicted_g3, risk_category, top_fea
         return f"Error generating advice: {e}"
 
 def validate_student_data(data):
+    """
+    Validates student form data before prediction.
+    
+    Args:
+        data (dict): Student assessment data
+        
+    Returns:
+        tuple: (is_valid, error_message) where is_valid is bool
+        
+    Raises:
+        ValueError: If required fields are missing or invalid
+    """
     required = ['G1', 'G2', 'age', 'school', 'sex']
-    for field in required:
-        if field not in data: raise ValueError(f"Missing: {field}")
+    
+    # Check for missing fields
+    missing = [f for f in required if f not in data]
+    if missing:
+        raise ValueError(f"Missing required fields: {', '.join(missing)}")
+    
+    # Validate numeric fields
+    try:
+        age = int(data.get('age'))
+        if not (15 <= age <= 30):
+            raise ValueError("Age must be between 15 and 30")
+            
+        g1 = float(data.get('G1'))
+        g2 = float(data.get('G2'))
+        if not (0 <= g1 <= 20 and 0 <= g2 <= 20):
+            raise ValueError("Grades must be between 0 and 20")
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Invalid numeric values: {str(e)}")
+    
     return True
 
 # --- Routes ---
@@ -235,73 +264,188 @@ def status():
 @main_bp.route('/api/predict', methods=['POST'])
 @limiter.limit("30 per minute")
 def predict_risk():
+    """
+    Predict student risk category based on assessment data.
+    
+    Expected JSON body: Student assessment form data with G1, G2, age, school, sex, etc.
+    Returns: JSON with prediction, risk_category, shap_values, mentoring_advice
+    """
     if pipeline is None:
-        return jsonify({"error": "Models not loaded."}), 500
+        logger.error("Prediction attempted but models not loaded")
+        return jsonify({
+            "error": "Models not loaded. Please contact support.",
+            "status": "error"
+        }), 503
 
     try:
+        # 1. REQUEST VALIDATION
+        if not request.is_json:
+            return jsonify({
+                "error": "Request must be JSON",
+                "status": "validation_error"
+            }), 400
+        
         data = request.get_json()
-        validate_student_data(data)
+        if not data:
+            return jsonify({
+                "error": "Empty request body",
+                "status": "validation_error"
+            }), 400
         
-        # 1. Transform & Predict
-        data_for_pipeline = {k: v for k, v in data.items() if k not in ['customPrompt']}
-        feature_df = pd.DataFrame([data_for_pipeline])
+        # Validate required fields
+        try:
+            validate_student_data(data)
+        except ValueError as e:
+            logger.warning(f"Validation failed: {str(e)}")
+            return jsonify({
+                "error": str(e),
+                "status": "validation_error"
+            }), 400
         
-        if label_encoder is None: return jsonify({"error": "Label encoder not loaded."}), 500
-        preprocessed_df = preprocess_data_for_pipeline(feature_df, label_encoder)
+        # 2. DATA PREPROCESSING
+        try:
+            data_for_pipeline = {k: v for k, v in data.items() if k not in ['customPrompt']}
+            feature_df = pd.DataFrame([data_for_pipeline])
+            
+            if label_encoder is None:
+                logger.error("Label encoder not available during prediction")
+                return jsonify({
+                    "error": "Model components unavailable",
+                    "status": "error"
+                }), 503
+            
+            preprocessed_df = preprocess_data_for_pipeline(feature_df, label_encoder)
+        except KeyError as e:
+            logger.error(f"Missing preprocessing column: {str(e)}")
+            return jsonify({
+                "error": f"Data preprocessing error: {str(e)}",
+                "status": "error"
+            }), 500
+        except Exception as e:
+            logger.exception(f"Preprocessing error: {str(e)}")
+            return jsonify({
+                "error": "Data preprocessing failed",
+                "status": "error"
+            }), 500
         
-        predicted_risk_class = pipeline.predict(preprocessed_df)[0]
-        risk_mapping = {0: 'High', 1: 'Low', 2: 'Medium'}
-        risk_category = risk_mapping.get(predicted_risk_class, 'Unknown').lower()
+        # 3. PREDICTION
+        try:
+            predicted_risk_class = pipeline.predict(preprocessed_df)[0]
+            risk_mapping = {0: 'High', 1: 'Low', 2: 'Medium'}
+            risk_category = risk_mapping.get(predicted_risk_class, 'Unknown').lower()
+        except Exception as e:
+            logger.exception(f"Model prediction error: {str(e)}")
+            return jsonify({
+                "error": "Prediction failed",
+                "status": "error"
+            }), 500
         
-        # 2. Grade & Confidence
+        # 4. CONFIDENCE & GRADE ESTIMATION
         try:
             probabilities = pipeline.predict_proba(preprocessed_df)[0]
             class_confidence = float(probabilities[int(predicted_risk_class)])
-        except:
+        except Exception as e:
+            logger.warning(f"Probability calculation failed: {str(e)}, using fallback")
             probabilities = None
             class_confidence = 0.5
-            
-        grade_ranges = {0: (0, 9), 1: (14, 20), 2: (10, 13)}
-        lo, hi = grade_ranges.get(int(predicted_risk_class), (10, 12))
-        predicted_g3 = int(round(lo + (hi - lo) * class_confidence))
-        risk_descriptor = map_risk_category(predicted_g3)[1]
-
-        # 3. ACTION ROUTER: Trigger Alert if High Risk
+        
+        try:
+            grade_ranges = {0: (0, 9), 1: (14, 20), 2: (10, 13)}
+            lo, hi = grade_ranges.get(int(predicted_risk_class), (10, 12))
+            predicted_g3 = int(round(lo + (hi - lo) * class_confidence))
+            risk_descriptor = map_risk_category(predicted_g3)[1]
+        except Exception as e:
+            logger.error(f"Grade calculation error: {str(e)}")
+            predicted_g3 = 10
+            risk_descriptor = "Unable to determine risk level"
+        
+        # 5. HIGH-RISK ALERT (Non-blocking)
         if risk_category == 'high':
-            # This is the "Device" functionality triggering real-world action
-            send_faculty_alert(data, risk_category, predicted_g3)
-
-        # 4. Generate AI Advice
-        top_features = get_shap_feature_importance(preprocessed_df, predicted_risk_class)
-        mentoring_advice = generate_mentoring_advice(data, predicted_g3, risk_category, top_features)
-
-        # 5. Response
-        proba_payload = None
-        if probabilities is not None:
-            proba_map = {0: 'High', 1: 'Low', 2: 'Medium'}
-            proba_payload = {proba_map[i]: float(probabilities[i]) for i in range(len(probabilities)) if i in proba_map}
-
-        return jsonify({
-            "prediction": predicted_g3,
-            "risk_category": risk_category,
-            "risk_descriptor": risk_descriptor,
-            "confidence": class_confidence,
-            "probabilities": proba_payload,
-            "shap_values": top_features,
-            "mentoring_advice": mentoring_advice
-        })
+            try:
+                send_faculty_alert(data, risk_category, predicted_g3)
+            except Exception as e:
+                logger.error(f"Faculty alert failed: {str(e)}")
+                # Don't fail the prediction response, just log it
+        
+        # 6. MENTORING ADVICE (Non-blocking)
+        try:
+            top_features = get_shap_feature_importance(preprocessed_df, predicted_risk_class)
+            mentoring_advice = generate_mentoring_advice(data, predicted_g3, risk_category, top_features)
+        except Exception as e:
+            logger.error(f"Mentoring advice generation failed: {str(e)}")
+            top_features = []
+            mentoring_advice = f"*Unable to generate personalized advice at this moment. Please try again later.*"
+        
+        # 7. BUILD RESPONSE
+        try:
+            proba_payload = None
+            if probabilities is not None:
+                proba_map = {0: 'High', 1: 'Low', 2: 'Medium'}
+                proba_payload = {proba_map[i]: float(probabilities[i]) for i in range(len(probabilities)) if i in proba_map}
+            
+            response_data = {
+                "prediction": predicted_g3,
+                "risk_category": risk_category,
+                "risk_descriptor": risk_descriptor,
+                "confidence": class_confidence,
+                "probabilities": proba_payload,
+                "shap_values": top_features,
+                "mentoring_advice": mentoring_advice,
+                "status": "success"
+            }
+            return jsonify(response_data), 200
+            
+        except Exception as e:
+            logger.exception(f"Response building error: {str(e)}")
+            return jsonify({
+                "error": "Failed to build response",
+                "status": "error"
+            }), 500
 
     except Exception as e:
-        logger.exception(f"Prediction error: {e}")
-        return jsonify({"error": f"Error: {e}"}), 500
+        logger.exception(f"Unexpected error in predict_risk: {str(e)}")
+        return jsonify({
+            "error": "An unexpected error occurred",
+            "status": "error"
+        }), 500
 
 @main_bp.route('/generate-pdf', methods=['POST'])
 @limiter.limit("5 per minute")
 def generate_pdf():
+    """
+    Generate PDF report of student assessment.
+    
+    Expected JSON body: Assessment results with prediction, risk_category, shap_values, etc.
+    Returns: PDF file or JSON error
+    """
     try:
-        data = request.json
-        logger.info(f"PDF generation request received with data keys: {data.keys() if data else 'None'}")
+        # 1. REQUEST VALIDATION
+        if not request.is_json:
+            return jsonify({
+                "error": "Request must be JSON",
+                "status": "validation_error"
+            }), 400
         
+        data = request.json
+        if not data:
+            return jsonify({
+                "error": "Empty request body",
+                "status": "validation_error"
+            }), 400
+        
+        logger.info(f"PDF generation request with keys: {list(data.keys())}")
+        
+        # 2. REQUIRED FIELDS VALIDATION
+        required_fields = ['predicted_grade', 'risk_category', 'confidence']
+        missing_fields = [f for f in required_fields if f not in data]
+        if missing_fields:
+            logger.warning(f"Missing fields in PDF request: {missing_fields}")
+            return jsonify({
+                "error": f"Missing required fields: {', '.join(missing_fields)}",
+                "status": "validation_error"
+            }), 400
+        
+        # 3. PDF DOCUMENT CREATION
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=letter)
         styles = getSampleStyleSheet()
@@ -316,44 +460,58 @@ def generate_pdf():
             spaceAfter=30
         )
         
-        # Header
+        # HEADER
         story.append(Paragraph("AI Student Mentor - Assessment Report", title_style))
         story.append(Spacer(1, 0.2*inch))
-        story.append(Paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}", styles['Normal']))
+        try:
+            gen_time = datetime.now().strftime('%B %d, %Y at %I:%M %p')
+            story.append(Paragraph(f"Generated: {gen_time}", styles['Normal']))
+        except Exception as e:
+            logger.warning(f"Timestamp error: {str(e)}")
+            story.append(Paragraph("Generated: [Date unavailable]", styles['Normal']))
         story.append(Spacer(1, 0.4*inch))
         
-        # Risk Assessment Summary
+        # RISK ASSESSMENT SUMMARY
         story.append(Paragraph("Risk Assessment Summary", styles['Heading2']))
         story.append(Spacer(1, 0.1*inch))
         
-        # Normalize confidence to percentage
-        conf_value = data.get('confidence', 0)
+        # Safely extract and format confidence percentage
         try:
-            conf_pct = int(round(conf_value * 100)) if isinstance(conf_value, (int, float)) and conf_value <= 1 else int(round(conf_value))
-        except Exception:
+            conf_value = data.get('confidence', 0)
+            if isinstance(conf_value, (int, float)):
+                conf_pct = int(round(conf_value * 100)) if conf_value <= 1 else int(round(conf_value))
+            else:
+                conf_pct = 0
+            conf_pct = max(0, min(100, conf_pct))  # Clamp to [0, 100]
+        except Exception as e:
+            logger.warning(f"Confidence calculation error: {str(e)}")
             conf_pct = 0
-
-        summary_data = [
-            ['Predicted Final Grade', f"{data.get('predicted_grade', 'N/A')}/20"],
-            ['Risk Level', str(data.get('risk_category', 'N/A')).upper()],
-            ['Confidence', f"{conf_pct}%"]
-        ]
         
-        summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
-        summary_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F3F4F6')),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E5E7EB'))
-        ]))
+        # Summary table
+        try:
+            summary_data = [
+                ['Predicted Final Grade', f"{data.get('predicted_grade', 'N/A')}/20"],
+                ['Risk Level', str(data.get('risk_category', 'N/A')).upper()],
+                ['Confidence', f"{conf_pct}%"]
+            ]
+            
+            summary_table = Table(summary_data, colWidths=[3*inch, 2*inch])
+            summary_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F3F4F6')),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#E5E7EB'))
+            ]))
+            
+            story.append(summary_table)
+            story.append(Spacer(1, 0.4*inch))
+        except Exception as e:
+            logger.warning(f"Summary table error: {str(e)}")
         
-        story.append(summary_table)
-        story.append(Spacer(1, 0.4*inch))
-        
-        # Mentoring Advice - sanitize text for PDF
+        # MENTORING ADVICE
         if data.get('mentoring_advice'):
             story.append(Paragraph("Personalized Mentoring Advice", styles['Heading2']))
             story.append(Spacer(1, 0.1*inch))
@@ -362,37 +520,33 @@ def generate_pdf():
                 import html
                 import re
                 
-                # Get and clean advice text
                 advice_text = str(data['mentoring_advice'])
                 
-                # Remove emojis and special unicode characters
+                # Remove emojis and non-ASCII
                 advice_text = re.sub(r'[^\x00-\x7F]+', ' ', advice_text)
                 
-                # Convert markdown formatting to plain text
-                advice_text = re.sub(r'###\s*', '', advice_text)  # Remove heading markers
-                advice_text = re.sub(r'\*\*([^*]+)\*\*', r'\1', advice_text)  # Remove bold
-                advice_text = re.sub(r'\*([^*]+)\*', r'\1', advice_text)  # Remove italics
-                advice_text = advice_text.replace('•', '- ')  # Replace bullets
+                # Convert markdown
+                advice_text = re.sub(r'###\s*', '', advice_text)
+                advice_text = re.sub(r'\*\*([^*]+)\*\*', r'\1', advice_text)
+                advice_text = re.sub(r'\*([^*]+)\*', r'\1', advice_text)
+                advice_text = advice_text.replace('•', '- ')
                 
-                # Split into paragraphs and format each
+                # Add paragraphs
                 paragraphs = advice_text.split('\n\n')
-                for para in paragraphs[:10]:  # Limit to 10 paragraphs
+                for para in paragraphs[:10]:
                     if para.strip():
-                        # Clean and escape HTML entities
                         clean_para = html.escape(para.strip())
-                        # Remove any remaining problematic characters
                         clean_para = clean_para.replace('\n', '<br/>')
                         story.append(Paragraph(clean_para, styles['Normal']))
                         story.append(Spacer(1, 0.1*inch))
                 
             except Exception as e:
-                logger.warning(f"Error formatting advice text: {e}")
-                # Fallback: just show a simple message
+                logger.warning(f"Advice formatting error: {str(e)}")
                 story.append(Paragraph("Mentoring advice is available in the web interface.", styles['Normal']))
             
             story.append(Spacer(1, 0.2*inch))
         
-        # Key Factors
+        # KEY FACTORS
         if data.get('shap_values') and isinstance(data['shap_values'], list):
             story.append(Paragraph("Key Influencing Factors", styles['Heading2']))
             story.append(Spacer(1, 0.1*inch))
@@ -400,39 +554,49 @@ def generate_pdf():
             try:
                 factors_data = [['Factor', 'Impact']]
                 for factor in data['shap_values'][:5]:
-                    feature_name = str(factor.get('feature', 'Unknown'))
-                    importance = factor.get('importance', 0)
-                    factors_data.append([feature_name, f"{float(importance):.3f}"])
+                    try:
+                        feature_name = str(factor.get('feature', 'Unknown')).strip()
+                        importance = float(factor.get('importance', 0))
+                        factors_data.append([feature_name, f"{importance:.3f}"])
+                    except Exception as e:
+                        logger.warning(f"Factor processing error: {str(e)}")
+                        continue
                 
-                factors_table = Table(factors_data, colWidths=[3*inch, 1.5*inch])
-                factors_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F46E5')),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
-                ]))
-                
-                story.append(factors_table)
+                if len(factors_data) > 1:  # Only show if we have factors
+                    factors_table = Table(factors_data, colWidths=[3*inch, 1.5*inch])
+                    factors_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F46E5')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                    ]))
+                    
+                    story.append(factors_table)
             except Exception as e:
-                logger.warning(f"Error creating factors table: {e}")
+                logger.warning(f"Factors table error: {str(e)}")
         
-        # Build PDF
+        # 4. BUILD PDF
         doc.build(story)
         buffer.seek(0)
+        logger.info("PDF built successfully")
         
+        # 5. BUILD RESPONSE
         response = make_response(buffer.getvalue())
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename=student_report_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
-        
-        logger.info("PDF generated successfully")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        response.headers['Content-Disposition'] = f'attachment; filename=student_report_{timestamp}.pdf'
+        logger.info("PDF response sent successfully")
         return response
-        
+            
     except Exception as e:
-        logger.exception(f"PDF generation error: {e}")
-        return jsonify({"error": str(e)}), 500
+        logger.exception(f"Unexpected error in generate_pdf: {str(e)}")
+        return jsonify({
+            "error": "An unexpected error occurred during PDF generation",
+            "status": "error"
+        }), 500
 
 main = main_bp
