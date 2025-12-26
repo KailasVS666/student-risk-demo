@@ -4,7 +4,9 @@ import joblib
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import Flask
-from flask_mail import Mail  # NEW IMPORT
+from flask_mail import Mail
+from flask_talisman import Talisman
+from flask_wtf.csrf import CSRFProtect
 from .limits import limiter
 from dotenv import load_dotenv
 
@@ -13,6 +15,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 # Define Global Extensions
 mail = Mail()  # Initialize Mail globally
+csrf = CSRFProtect()  # Initialize CSRF protection globally
 
 # Define the ColumnDropper class here so joblib can find it
 class ColumnDropper(BaseEstimator, TransformerMixin):
@@ -71,6 +74,42 @@ def create_app():
     logging.info("Environment check complete.")
 
     app = Flask(__name__)
+    
+    # --- Security Configuration ---
+    # CSRF Protection
+    app.config['WTF_CSRF_ENABLED'] = True
+    app.config['WTF_CSRF_CHECK_DEFAULT'] = False  # Only protect routes that explicitly need it
+    app.config['WTF_CSRF_TIME_LIMIT'] = None  # No token expiry
+    csrf.init_app(app)
+    
+    # Security Headers (CSP, X-Frame-Options, etc.)
+    Talisman(
+        app,
+        force_https=os.getenv('ENVIRONMENT', 'development') == 'production',
+        strict_transport_security=True,
+        strict_transport_security_max_age=31536000,  # 1 year
+        content_security_policy={
+            'default-src': "'self'",
+            'script-src': ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net', 'cdn.tailwindcss.com', 'www.gstatic.com', 'www.googleapis.com'],
+            'style-src': ["'self'", "'unsafe-inline'", 'cdn.tailwindcss.com', 'fonts.googleapis.com'],
+            'img-src': ["'self'", 'data:', 'https:'],
+            'font-src': ["'self'", 'fonts.gstatic.com'],
+            'connect-src': ["'self'", 'firebaseio.com', '*.firebaseio.com', 'firebase.googleapis.com', '*.google.com', 'generativelanguage.googleapis.com'],
+            'frame-ancestors': "'none'",
+            'base-uri': "'self'",
+            'form-action': "'self'"
+        },
+        content_security_policy_nonce_in=['script-src']
+    )
+    
+    # Session Configuration (for CSRF tokens)
+    app.config['SESSION_COOKIE_SECURE'] = os.getenv('ENVIRONMENT', 'development') == 'production'
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
+    
+    # SECRET_KEY for session management (required for Flask-WTF)
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', os.urandom(32).hex())
     
     # --- Mail Configuration (For High-Risk Alerts) ---
     app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
