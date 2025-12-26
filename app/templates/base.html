@@ -223,12 +223,15 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
     <!-- Base JavaScript -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         // Mobile menu toggle
-        document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
-            const menu = document.getElementById('mobileMenu');
-            menu.classList.toggle('hidden');
-        });
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', () => {
+                const menu = document.getElementById('mobileMenu');
+                menu.classList.toggle('hidden');
+            });
+        }
 
         // Toast notification function
         function showToast(message, type = 'info') {
@@ -247,6 +250,63 @@
                 toast.addEventListener('transitionend', () => toast.remove());
             }, 3000);
         }
+
+        // Dark Mode Toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Theme script loaded');
+            const themeKey = 'student-mentor-theme';
+            const savedTheme = localStorage.getItem(themeKey) || 'light';
+            console.log('Saved theme:', savedTheme);
+            
+            function applyTheme(theme) {
+                console.log('Applying theme:', theme);
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                    document.body.classList.add('bg-gray-900', 'text-white');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    document.body.classList.remove('bg-gray-900', 'text-white');
+                }
+            }
+            
+            function updateIcons(theme) {
+                const lightIcon = document.getElementById('themeIconLight');
+                const darkIcon = document.getElementById('themeIconDark');
+                console.log('Light icon:', lightIcon, 'Dark icon:', darkIcon);
+                if (lightIcon && darkIcon) {
+                    if (theme === 'dark') {
+                        lightIcon.classList.remove('hidden');
+                        darkIcon.classList.add('hidden');
+                    } else {
+                        lightIcon.classList.add('hidden');
+                        darkIcon.classList.remove('hidden');
+                    }
+                }
+            }
+            
+            // Apply saved theme on load
+            applyTheme(savedTheme);
+            updateIcons(savedTheme);
+            
+            // Setup toggle button
+            const themeToggle = document.getElementById('themeToggle');
+            console.log('Theme toggle button:', themeToggle);
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function(e) {
+                    console.log('Theme button clicked!');
+                    const currentTheme = localStorage.getItem(themeKey) || 'light';
+                    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                    console.log('Switching from', currentTheme, 'to', newTheme);
+                    localStorage.setItem(themeKey, newTheme);
+                    applyTheme(newTheme);
+                    updateIcons(newTheme);
+                    showToast(`${newTheme === 'dark' ? 'Dark' : 'Light'} mode enabled`, 'success');
+                });
+            } else {
+                console.error('Theme toggle button not found!');
+            }
+        });
+
 
         // Highlight active nav link
         const currentPath = window.location.pathname;
