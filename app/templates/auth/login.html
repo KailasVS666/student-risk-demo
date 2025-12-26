@@ -107,8 +107,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
-    <script>
-        const FIREBASE_CONFIG = {{ firebase_config|safe }};
+    <script nonce="{{ csp_nonce() }}">
+        // Use tojson to ensure a valid JS object is rendered from Jinja
+        const FIREBASE_CONFIG = {{ firebase_config | tojson }};
         
         if (typeof firebase !== 'undefined' && FIREBASE_CONFIG && FIREBASE_CONFIG.projectId) {
             if (!firebase.apps.length) {
@@ -157,7 +158,7 @@
                 }
             });
 
-            // Toggle password visibility
+            // Toggle password visibility (works regardless of auth state)
             togglePassword.addEventListener('click', () => {
                 const isPwd = passwordInput.getAttribute('type') === 'password';
                 passwordInput.setAttribute('type', isPwd ? 'text' : 'password');
@@ -191,6 +192,16 @@
                 }
             });
         } else {
+            // Ensure password toggling works even if Firebase isn't configured
+            const togglePassword = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+            if (togglePassword && passwordInput) {
+                togglePassword.addEventListener('click', () => {
+                    const isPwd = passwordInput.getAttribute('type') === 'password';
+                    passwordInput.setAttribute('type', isPwd ? 'text' : 'password');
+                    togglePassword.setAttribute('aria-label', isPwd ? 'Hide password' : 'Show password');
+                });
+            }
             console.error("Firebase config missing");
             document.getElementById('authError').textContent = 'Authentication system not configured';
             document.getElementById('authError').classList.remove('hidden');

@@ -94,7 +94,7 @@ def create_app():
             'style-src': ["'self'", "'unsafe-inline'", 'cdn.tailwindcss.com', 'fonts.googleapis.com'],
             'img-src': ["'self'", 'data:', 'https:'],
             'font-src': ["'self'", 'fonts.gstatic.com'],
-            'connect-src': ["'self'", 'firebaseio.com', '*.firebaseio.com', 'firebase.googleapis.com', '*.google.com', 'generativelanguage.googleapis.com'],
+            'connect-src': ["'self'", 'firebaseio.com', '*.firebaseio.com', 'firebase.googleapis.com', '*.googleapis.com', '*.google.com', 'generativelanguage.googleapis.com', 'www.gstatic.com', 'cdn.jsdelivr.net'],
             'frame-ancestors': "'none'",
             'base-uri': "'self'",
             'form-action': "'self'"

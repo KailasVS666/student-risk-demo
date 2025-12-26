@@ -123,8 +123,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
-    <script>
-        const FIREBASE_CONFIG = {{ firebase_config|safe }};
+    <script nonce="{{ csp_nonce() }}">
+        const FIREBASE_CONFIG = {{ firebase_config | tojson }};
         
         if (typeof firebase !== 'undefined' && FIREBASE_CONFIG && FIREBASE_CONFIG.projectId) {
             if (!firebase.apps.length) {
@@ -225,6 +225,25 @@
                 confirmPwd.setAttribute('type', isPwd ? 'text' : 'password');
             });
         } else {
+            // Ensure password toggling works even if Firebase isn't configured
+            const pwd = document.getElementById('password');
+            const confirmPwd = document.getElementById('confirmPassword');
+            const togglePwd = document.getElementById('togglePassword');
+            const toggleConfirmPwd = document.getElementById('toggleConfirmPassword');
+            
+            if (togglePwd && pwd) {
+                togglePwd.addEventListener('click', () => {
+                    const isPwd = pwd.getAttribute('type') === 'password';
+                    pwd.setAttribute('type', isPwd ? 'text' : 'password');
+                });
+            }
+            if (toggleConfirmPwd && confirmPwd) {
+                toggleConfirmPwd.addEventListener('click', () => {
+                    const isPwd = confirmPwd.getAttribute('type') === 'password';
+                    confirmPwd.setAttribute('type', isPwd ? 'text' : 'password');
+                });
+            }
+            
             console.error("Firebase config missing");
             document.getElementById('authError').textContent = 'Authentication system not configured';
             document.getElementById('authError').classList.remove('hidden');
