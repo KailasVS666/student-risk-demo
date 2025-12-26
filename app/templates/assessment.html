@@ -67,7 +67,7 @@
 
         <!-- Main Form -->
         <div class="lg:col-span-3">
-            <section class="p-8 bg-white rounded-xl shadow-md">
+            <section id="inputForm" class="p-8 bg-white rounded-xl shadow-md">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -169,7 +169,230 @@
                         </div>
                     </div>
 
-                    <!-- Step 2: Academics (continuing in next message due to length) -->
+                    <!-- Step 2: Family & Education -->
+                    <div class="form-step">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-5">
+                                <h3 class="text-xl font-bold text-gray-800 mb-4">Family & Education</h3>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Mother's Education</label>
+                                    <select id="Medu" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="0">None</option>
+                                        <option value="1">Primary</option>
+                                        <option value="2">5th to 9th</option>
+                                        <option value="3">Secondary</option>
+                                        <option value="4">Higher</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Father's Education</label>
+                                    <select id="Fedu" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="0">None</option>
+                                        <option value="1">Primary</option>
+                                        <option value="2">5th to 9th</option>
+                                        <option value="3">Secondary</option>
+                                        <option value="4">Higher</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Mother's Job</label>
+                                    <select id="Mjob" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="teacher">Teacher</option>
+                                        <option value="health">Health</option>
+                                        <option value="services">Services</option>
+                                        <option value="at_home">At Home</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Father's Job</label>
+                                    <select id="Fjob" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="teacher">Teacher</option>
+                                        <option value="health">Health</option>
+                                        <option value="services">Services</option>
+                                        <option value="at_home">At Home</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="space-y-5">
+                                <h3 class="text-xl font-bold text-white mb-4">.</h3>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Weekly Study Time (hours)</label>
+                                    <select id="studytime" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="1">&lt; 2 hours</option>
+                                        <option value="2">2 to 5 hours</option>
+                                        <option value="3">5 to 10 hours</option>
+                                        <option value="4">&gt; 10 hours</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Reason for School Choice</label>
+                                    <select id="reason" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="course">Course preference</option>
+                                        <option value="home">Close to home</option>
+                                        <option value="reputation">School reputation</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Primary Guardian</label>
+                                    <select id="guardian" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="mother">Mother</option>
+                                        <option value="father">Father</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">School Support</label>
+                                        <select id="schoolsup" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Family Support</label>
+                                        <select id="famsup" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Extra Paid Classes</label>
+                                        <select id="paid" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Higher Education Interest</label>
+                                        <select id="higher" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Academics & Lifestyle -->
+                    <div class="form-step">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-5">
+                                <h3 class="text-xl font-bold text-gray-800 mb-4">Academics</h3>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Travel Time to School</label>
+                                    <select id="traveltime" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="1">&lt; 15 min</option>
+                                        <option value="2">15 to 30 min</option>
+                                        <option value="3">30 min to 1 hour</option>
+                                        <option value="4">&gt; 1 hour</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Weekly Free Time: <span id="freetimeValue" class="font-semibold text-indigo-600">3</span></label>
+                                    <input type="range" id="freetime" min="1" max="5" value="3" class="w-full">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Going Out: <span id="gooutValue" class="font-semibold text-indigo-600">3</span></label>
+                                    <input type="range" id="goout" min="1" max="5" value="3" class="w-full">
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Workday Alcohol: <span id="DalcValue" class="font-semibold text-indigo-600">1</span></label>
+                                        <input type="range" id="Dalc" min="1" max="5" value="1" class="w-full">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Weekend Alcohol: <span id="WalcValue" class="font-semibold text-indigo-600">1</span></label>
+                                        <input type="range" id="Walc" min="1" max="5" value="1" class="w-full">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-5">
+                                <h3 class="text-xl font-bold text-white mb-4">.</h3>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Health (1-5)</label>
+                                        <input type="range" id="health" min="1" max="5" value="3" class="w-full">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Past Failures</label>
+                                        <input type="number" id="failures" min="0" max="5" value="0" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Absences</label>
+                                        <input type="number" id="absences" min="0" max="93" value="0" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Study Time with Internet?</label>
+                                        <select id="internet" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Activities</label>
+                                        <select id="activities" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Attended Nursery</label>
+                                        <select id="nursery" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                            <option value="yes">Yes</option>
+                                            <option value="no">No</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Romantic Relationship</label>
+                                    <select id="romantic" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="no">No</option>
+                                        <option value="yes">Yes</option>
+                                    </select>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">First Period Grade (G1)</label>
+                                        <input type="number" id="G1" min="0" max="20" value="10" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Second Period Grade (G2)</label>
+                                        <input type="number" id="G2" min="0" max="20" value="10" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Navigation Buttons -->
@@ -226,11 +449,9 @@
 {% endblock %}
 
 {% block extra_scripts %}
-    });
+<script nonce="{{ csp_nonce() }}">
+    const FIREBASE_CONFIG = {{ firebase_config | tojson }};
 </script>
-
-<!-- Main Application Script (ES6 Module) -->
 <script type="module" src="{{ url_for('static', filename='js/script.js') }}"></script>
-
 {% endblock %}
 {% endblock %}
