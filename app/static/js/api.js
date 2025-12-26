@@ -5,6 +5,8 @@
 
 import APP_CONFIG from './config.js';
 import { showToast } from './ui-utils.js';
+import { getCacheData, setCacheData } from './cache.js';
+import { handleError, withErrorBoundary } from './error-handler.js';
 
 /**
  * Makes a prediction request to the backend.
@@ -18,6 +20,12 @@ import { showToast } from './ui-utils.js';
 export async function predictRisk(formData) {
   if (!formData || typeof formData !== 'object') {
     throw new Error('Invalid form data provided');
+  }
+
+  // Check cache first
+  const cachedResult = getCacheData(APP_CONFIG.API.PREDICT, formData);
+  if (cachedResult) {
+    return cachedResult;
   }
 
   try {
@@ -41,9 +49,11 @@ export async function predictRisk(formData) {
       throw new Error('Invalid response structure from prediction API');
     }
 
+    // Cache successful response
+    setCacheData(APP_CONFIG.API.PREDICT, formData, data);
+
     return data;
   } catch (error) {
-    console.error('Prediction API error:', error);
     throw error;
   }
 }

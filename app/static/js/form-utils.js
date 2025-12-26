@@ -46,7 +46,6 @@ export function saveFormToLocalStorage() {
         data: formData,
         timestamp: Date.now()
       }));
-      console.log('Form auto-saved');
     }
   } catch (error) {
     console.error('Failed to auto-save form:', error);
@@ -79,7 +78,6 @@ export function restoreFormFromLocalStorage() {
 export function clearAutoSavedForm() {
   try {
     localStorage.removeItem(APP_CONFIG.AUTOSAVE_KEY);
-    console.log('Auto-saved form cleared');
   } catch (error) {
     console.error('Failed to clear auto-saved form:', error);
   }

@@ -55,8 +55,6 @@ export function toggleTheme() {
   localStorage.setItem(APP_CONFIG.THEME_KEY, newTheme);
   applyTheme(newTheme);
   updateThemeIcon(newTheme);
-  
-  console.log(`Theme switched to ${newTheme}`);
 }
 
 /**

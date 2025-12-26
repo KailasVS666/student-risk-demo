@@ -69,6 +69,8 @@ import {
 } from './results.js';
 
 import { setupThemeToggle } from './theme.js';
+import { handleError, withErrorBoundary } from './error-handler.js';
+import { clearCache } from './cache.js';
 
 // ============================================================================
 // GLOBAL STATE
@@ -94,57 +96,57 @@ window.currentUserEmail = null;
  * Called when DOM is ready.
  */
 async function initializeApp() {
-  console.log('Initializing AI Student Mentor application...');
-
-  // 1. Initialize Firebase
-  firebaseServices = initializeFirebase();
-  if (!firebaseServices) {
-    console.error('Failed to initialize Firebase. Auth features disabled.');
-    showToast('Firebase initialization failed. Some features may not work.', 'error');
-  }
-
-  // 2. Initialize Form Wizard
-  wizard = initializeWizard({ totalSteps: 3 });
-  window.wizard = wizard;
-  if (!wizard) {
-    console.error('Failed to initialize wizard');
-    showToast('Form wizard failed to initialize', 'error');
-  }
-
-  // 3. Setup Theme Toggle
-  setupThemeToggle();
-
-  // 4. Setup Auto-save and Restore Form
-  startAutoSave();
-  const savedFormData = restoreFormFromLocalStorage();
-  if (savedFormData && Object.keys(savedFormData).length > 0) {
-    const restoreBtn = confirm('Would you like to restore your previous assessment?');
-    if (restoreBtn) {
-      populateFormWithData(savedFormData);
-      showToast('Form data restored', 'success');
-    } else {
-      clearAutoSavedForm();
+  try {
+    // 1. Initialize Firebase
+    firebaseServices = initializeFirebase();
+    if (!firebaseServices) {
+      console.error('Failed to initialize Firebase. Auth features disabled.');
+      showToast('Firebase initialization failed. Some features may not work.', 'error');
     }
+
+    // 2. Initialize Form Wizard
+    wizard = initializeWizard({ totalSteps: 3 });
+    window.wizard = wizard;
+    if (!wizard) {
+      console.error('Failed to initialize wizard');
+      showToast('Form wizard failed to initialize', 'error');
+    }
+
+    // 3. Setup Theme Toggle
+    setupThemeToggle();
+
+    // 4. Setup Auto-save and Restore Form
+    startAutoSave();
+    const savedFormData = restoreFormFromLocalStorage();
+    if (savedFormData && Object.keys(savedFormData).length > 0) {
+      const restoreBtn = confirm('Would you like to restore your previous assessment?');
+      if (restoreBtn) {
+        populateFormWithData(savedFormData);
+        showToast('Form data restored', 'success');
+      } else {
+        clearAutoSavedForm();
+      }
+    }
+
+    // 5. Setup Form Event Listeners
+    setupFormEventListeners();
+
+    // 6. Setup Prediction & Results Event Listeners
+    setupPredictionEventListeners();
+
+    // 7. Setup Firebase Auth Event Listeners
+    if (firebaseServices) {
+      setupFirebaseAuthListeners();
+    }
+
+    // 8. Setup UI Event Listeners
+    setupUIEventListeners();
+
+    // 9. Setup Unsaved Changes Guard
+    setupUnsavedChangesGuard();
+  } catch (error) {
+    handleError(error, { context: 'Application Initialization' });
   }
-
-  // 5. Setup Form Event Listeners
-  setupFormEventListeners();
-
-  // 6. Setup Prediction & Results Event Listeners
-  setupPredictionEventListeners();
-
-  // 7. Setup Firebase Auth Event Listeners
-  if (firebaseServices) {
-    setupFirebaseAuthListeners();
-  }
-
-  // 8. Setup UI Event Listeners
-  setupUIEventListeners();
-
-  // 9. Setup Unsaved Changes Guard
-  setupUnsavedChangesGuard();
-
-  console.log('Application initialized successfully');
 }
 
 // ============================================================================
@@ -270,8 +272,7 @@ async function handlePredictionRequest() {
     showToast('Analysis complete!', 'success');
     markFormClean();
   } catch (error) {
-    console.error('Prediction error:', error);
-    showToast(`Error: ${error.message}`, 'error');
+    handleError(error, { context: 'Risk Prediction' });
     setMultipleVisibility({
       loadingSpinner: false,
       adviceContent: false
@@ -306,8 +307,6 @@ async function persistAssessmentResults(formData, result) {
       confidence: result.confidence,
       timestamp
     });
-
-    console.log('Assessment persisted to Firebase');
   } catch (error) {
     console.warn('Failed to persist assessment:', error);
     // Don't fail the entire flow if persistence fails
