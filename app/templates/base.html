@@ -22,7 +22,7 @@
     {% block extra_head %}{% endblock %}
     
     <!-- Dark Mode Script (must run before body renders) -->
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         // Apply saved theme immediately to prevent flash
         const savedTheme = localStorage.getItem('student_assessment_theme') || 'light';
         if (savedTheme === 'dark') {
@@ -30,7 +30,7 @@
         }
     </script>
     
-    <script>
+    <script nonce="{{ csp_nonce() }}">
         tailwind.config = {
             darkMode: 'class',
         }

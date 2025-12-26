@@ -8,7 +8,7 @@ import { addFieldError, clearFieldError, clearAllErrorsInStep, smoothScrollIntoV
 
 // Auto-save timer
 let autoSaveTimer = null;
-let isFormDirty = false;
+let formDirtyFlag = false;
 
 /**
  * Sanitizes text input to prevent XSS attacks.
@@ -91,9 +91,9 @@ export function startAutoSave() {
     clearInterval(autoSaveTimer);
   }
   autoSaveTimer = setInterval(() => {
-    if (isFormDirty) {
+    if (formDirtyFlag) {
       saveFormToLocalStorage();
-      isFormDirty = false;
+      formDirtyFlag = false;
     }
   }, APP_CONFIG.AUTOSAVE_INTERVAL);
 }
@@ -279,7 +279,7 @@ export function clearForm() {
  */
 export function markFormDirty() {
   window.__formDirty = true;
-  isFormDirty = true; // Also mark for auto-save
+  formDirtyFlag = true; // Also mark for auto-save
 }
 
 /**
@@ -289,7 +289,7 @@ export function markFormDirty() {
  */
 export function markFormClean() {
   window.__formDirty = false;
-  isFormDirty = false; // Also clear auto-save flag
+  formDirtyFlag = false; // Also clear auto-save flag
 }
 
 /**
@@ -299,7 +299,7 @@ export function markFormClean() {
  * if (isFormDirty()) { ... }
  */
 export function isFormDirty() {
-  return window.__formDirty || false;
+  return window.__formDirty || formDirtyFlag || false;
 }
 
 /**
