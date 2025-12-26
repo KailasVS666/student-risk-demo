@@ -13,6 +13,11 @@ const APP_CONFIG = {
     STATUS: '/status'
   },
 
+  // ===== Auto-save & Theme Configuration =====
+  AUTOSAVE_KEY: 'student_assessment_autosave',
+  AUTOSAVE_INTERVAL: 30000, // 30 seconds
+  THEME_KEY: 'student_assessment_theme',
+
   // ===== Form Step Configuration =====
   FORM_STEPS: {
     DEMOGRAPHICS: 0,

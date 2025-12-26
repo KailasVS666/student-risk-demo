@@ -6,6 +6,10 @@
 import APP_CONFIG from './config.js';
 import { addFieldError, clearFieldError, clearAllErrorsInStep, smoothScrollIntoView, showToast } from './ui-utils.js';
 
+// Auto-save timer
+let autoSaveTimer = null;
+let isFormDirty = false;
+
 /**
  * Sanitizes text input to prevent XSS attacks.
  * Removes HTML tags and dangerous characters.
@@ -28,6 +32,72 @@ export function sanitizeInput(text) {
         .replace(/on\w+=/gi, ''); // Remove event handlers
     
     return sanitized;
+}
+
+/**
+ * Saves form data to localStorage for auto-recovery.
+ * @private
+ */
+export function saveFormToLocalStorage() {
+  try {
+    const formData = gatherFormData();
+    if (formData && Object.keys(formData).length > 0) {
+      localStorage.setItem(APP_CONFIG.AUTOSAVE_KEY, JSON.stringify({
+        data: formData,
+        timestamp: Date.now()
+      }));
+      console.log('Form auto-saved');
+    }
+  } catch (error) {
+    console.error('Failed to auto-save form:', error);
+  }
+}
+
+/**
+ * Restores form data from localStorage.
+ * @returns {Object|null} Saved form data or null
+ */
+export function restoreFormFromLocalStorage() {
+  try {
+    const saved = localStorage.getItem(APP_CONFIG.AUTOSAVE_KEY);
+    if (saved) {
+      const { data, timestamp } = JSON.parse(saved);
+      // Only restore if saved within last 24 hours
+      if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+        return data;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to restore form:', error);
+  }
+  return null;
+}
+
+/**
+ * Clears auto-saved form data from localStorage.
+ */
+export function clearAutoSavedForm() {
+  try {
+    localStorage.removeItem(APP_CONFIG.AUTOSAVE_KEY);
+    console.log('Auto-saved form cleared');
+  } catch (error) {
+    console.error('Failed to clear auto-saved form:', error);
+  }
+}
+
+/**
+ * Starts auto-save timer for form data.
+ */
+export function startAutoSave() {
+  if (autoSaveTimer) {
+    clearInterval(autoSaveTimer);
+  }
+  autoSaveTimer = setInterval(() => {
+    if (isFormDirty) {
+      saveFormToLocalStorage();
+      isFormDirty = false;
+    }
+  }, APP_CONFIG.AUTOSAVE_INTERVAL);
 }
 
 /**
@@ -211,6 +281,7 @@ export function clearForm() {
  */
 export function markFormDirty() {
   window.__formDirty = true;
+  isFormDirty = true; // Also mark for auto-save
 }
 
 /**
@@ -220,6 +291,7 @@ export function markFormDirty() {
  */
 export function markFormClean() {
   window.__formDirty = false;
+  isFormDirty = false; // Also clear auto-save flag
 }
 
 /**

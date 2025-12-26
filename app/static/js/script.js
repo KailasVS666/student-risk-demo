@@ -25,7 +25,10 @@ import {
   populateFormWithData,
   clearForm,
   markFormDirty,
-  markFormClean
+  markFormClean,
+  startAutoSave,
+  restoreFormFromLocalStorage,
+  clearAutoSavedForm
 } from './form-utils.js';
 
 import {
@@ -64,6 +67,8 @@ import {
   displayResults,
   clearResults
 } from './results.js';
+
+import { setupThemeToggle } from './theme.js';
 
 // ============================================================================
 // GLOBAL STATE
@@ -106,21 +111,37 @@ async function initializeApp() {
     showToast('Form wizard failed to initialize', 'error');
   }
 
-  // 3. Setup Form Event Listeners
+  // 3. Setup Theme Toggle
+  setupThemeToggle();
+
+  // 4. Setup Auto-save and Restore Form
+  startAutoSave();
+  const savedFormData = restoreFormFromLocalStorage();
+  if (savedFormData && Object.keys(savedFormData).length > 0) {
+    const restoreBtn = confirm('Would you like to restore your previous assessment?');
+    if (restoreBtn) {
+      populateFormWithData(savedFormData);
+      showToast('Form data restored', 'success');
+    } else {
+      clearAutoSavedForm();
+    }
+  }
+
+  // 5. Setup Form Event Listeners
   setupFormEventListeners();
 
-  // 4. Setup Prediction & Results Event Listeners
+  // 6. Setup Prediction & Results Event Listeners
   setupPredictionEventListeners();
 
-  // 5. Setup Firebase Auth Event Listeners
+  // 7. Setup Firebase Auth Event Listeners
   if (firebaseServices) {
     setupFirebaseAuthListeners();
   }
 
-  // 6. Setup UI Event Listeners
+  // 8. Setup UI Event Listeners
   setupUIEventListeners();
 
-  // 7. Setup Unsaved Changes Guard
+  // 9. Setup Unsaved Changes Guard
   setupUnsavedChangesGuard();
 
   console.log('Application initialized successfully');
@@ -156,6 +177,7 @@ function setupFormEventListeners() {
     clearFormBtn.addEventListener('click', () => {
       clearForm();
       clearResults();
+      clearAutoSavedForm();
       markFormClean();
     });
   }

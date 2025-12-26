@@ -39,12 +39,20 @@
             </div>
         </div>
 
-        <!-- Sort Options -->
-        <div class="mt-4 flex items-center space-x-4">
-            <span class="text-sm text-gray-600">Sort by:</span>
-            <button id="sortNewest" class="sort-btn active">Newest First</button>
-            <button id="sortOldest" class="sort-btn">Oldest First</button>
-            <button id="sortName" class="sort-btn">Name (A-Z)</button>
+        <!-- Sort Options and Export -->
+        <div class="mt-4 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <span class="text-sm text-gray-600">Sort by:</span>
+                <button id="sortNewest" class="sort-btn active">Newest First</button>
+                <button id="sortOldest" class="sort-btn">Oldest First</button>
+                <button id="sortName" class="sort-btn">Name (A-Z)</button>
+            </div>
+            <button id="exportCsvBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center space-x-2">
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span>Export CSV</span>
+            </button>
         </div>
     </div>
 
@@ -99,7 +107,10 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script type="module">
+import { exportHistoryToCSV } from '/static/js/export.js';
+import { showToast } from '/static/js/ui-utils.js';
+
 (function() {
     if (typeof firebase === 'undefined' || !FIREBASE_CONFIG || !FIREBASE_CONFIG.projectId) {
         console.error("Firebase not configured");
@@ -132,6 +143,35 @@
     document.getElementById('logoutBtnMobile').addEventListener('click', () => {
         auth.signOut().then(() => window.location.href = '/login');
     });
+
+    // CSV Export handler
+    document.getElementById('exportCsvBtn').addEventListener('click', () => {
+        if (allProfiles.length === 0) {
+            showToast('No assessments to export', 'warning');
+            return;
+        }
+        
+        // Transform profiles for export
+        const exportData = allProfiles.map(profile => ({
+            profileName: profile.id,
+            riskLevel: calculateRiskLevel(profile),
+            confidence: 0.85, // Default confidence
+            timestamp: new Date().toISOString(),
+            data: profile
+        }));
+        
+        const success = exportHistoryToCSV(exportData);
+        if (success) {
+            showToast(`Exported ${allProfiles.length} assessments to CSV`, 'success');
+        } else {
+            showToast('Failed to export CSV', 'error');
+        }
+    });
+    
+    function calculateRiskLevel(profile) {
+        const avg = ((profile.G1 || 0) + (profile.G2 || 0)) / 2;
+        return avg < 10 ? 'High' : avg < 14 ? 'Medium' : 'Low';
+    }
 
     async function loadHistory(userEmail) {
         try {
