@@ -220,3 +220,126 @@ input[type="range"]::-moz-range-thumb {
 .dark .bg-purple-100 { background-color: rgba(168,85,247,0.15) !important; }
 
 .dark .text-gray-900 { color: #e5e7eb !important; }
+
+/* --- Assessment Page Dark Mode --- */
+.dark input[type="text"],
+.dark input[type="search"],
+.dark select,
+.dark textarea {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+    color: #6b7280 !important;
+}
+
+.dark .border-gray-300 {
+    border-color: #374151 !important;
+}
+
+.dark .progress-step .step-circle {
+    background-color: #1f2937;
+    color: #9ca3af;
+    border-color: #374151;
+}
+
+.dark .progress-step.active .step-circle {
+    background-color: #4f46e5;
+    color: #fff;
+    border-color: #4f46e5;
+}
+
+.dark .step-label {
+    color: #9ca3af;
+}
+
+.dark .progress-step.active .step-label {
+    color: #a5b4fc;
+}
+
+.dark .progress-line {
+    border-color: #374151 !important;
+}
+
+/* --- About Page Dark Mode --- */
+.dark .bg-gradient-to-r {
+    background: linear-gradient(to right, rgba(79,70,229,0.1), rgba(168,85,247,0.1)) !important;
+}
+
+.dark .bg-indigo-50 { background-color: rgba(79,70,229,0.1) !important; }
+.dark .bg-purple-50 { background-color: rgba(168,85,247,0.1) !important; }
+.dark .bg-pink-50 { background-color: rgba(236,72,153,0.1) !important; }
+.dark .bg-blue-50 { background-color: rgba(59,130,246,0.1) !important; }
+.dark .bg-orange-50 { background-color: rgba(249,115,22,0.1) !important; }
+.dark .bg-green-50 { background-color: rgba(34,197,94,0.1) !important; }
+
+.dark .text-blue-600 { color: #60a5fa !important; }
+.dark .text-orange-600 { color: #fb923c !important; }
+.dark .text-pink-600 { color: #f472b6 !important; }
+.dark .text-red-600 { color: #f87171 !important; }
+
+/* --- History Page Dark Mode --- */
+.dark .sort-btn {
+    color: #9ca3af;
+}
+
+.dark .sort-btn:hover {
+    color: #a5b4fc;
+}
+
+.dark .sort-btn.active {
+    color: #a5b4fc;
+    border-color: #a5b4fc;
+}
+
+.dark #historyLoading {
+    background-color: #111827 !important;
+}
+
+.dark #historyEmpty {
+    background-color: #111827 !important;
+}
+
+.dark .animate-spin {
+    border-color: #4f46e5 transparent transparent transparent;
+}
+
+/* --- Button Dark Mode Overrides --- */
+.dark .bg-indigo-600 {
+    background-color: #4f46e5 !important;
+}
+
+.dark .bg-indigo-600:hover {
+    background-color: #4338ca !important;
+}
+
+.dark .bg-gray-600 {
+    background-color: #4b5563 !important;
+}
+
+.dark .bg-gray-600:hover {
+    background-color: #374151 !important;
+}
+
+.dark .bg-green-600 {
+    background-color: #16a34a !important;
+}
+
+.dark .bg-green-600:hover {
+    background-color: #15803d !important;
+}
+
+.dark .bg-indigo-700 {
+    background-color: #4338ca !important;
+}
+
+.dark .bg-gray-700 {
+    background-color: #374151 !important;
+}
+
+.dark .bg-green-700 {
+    background-color: #15803d !important;
+}
