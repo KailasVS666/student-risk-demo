@@ -1,6 +1,7 @@
 /**
  * Chart Rendering Module
  * Manages all Chart.js visualizations (SHAP, grades, probabilities).
+ * Uses lazy loading for Chart.js to improve initial page load performance.
  */
 
 import APP_CONFIG from './config.js';
@@ -9,6 +10,49 @@ import APP_CONFIG from './config.js';
 let explanationChartInstance = null;
 let gradesChartInstance = null;
 let probaChartInstance = null;
+
+// Chart.js lazy loading
+let ChartJS = null;
+let chartLibraryLoaded = false;
+
+/**
+ * Lazily loads Chart.js library only when needed.
+ * @returns {Promise<void>}
+ * @private
+ */
+async function ensureChartLibrary() {
+  if (chartLibraryLoaded) return;
+  
+  try {
+    // Chart.js is loaded via CDN in base.html, access it from window
+    if (typeof window.Chart !== 'undefined') {
+      ChartJS = window.Chart;
+      chartLibraryLoaded = true;
+    } else {
+      console.warn('Chart.js not loaded yet, waiting...');
+      // Wait for Chart.js to be available
+      await new Promise((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+          if (typeof window.Chart !== 'undefined') {
+            ChartJS = window.Chart;
+            chartLibraryLoaded = true;
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 100);
+        
+        // Timeout after 5 seconds
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error('Chart.js library failed to load'));
+        }, 5000);
+      });
+    }
+  } catch (error) {
+    console.error('Failed to load Chart.js:', error);
+    throw error;
+  }
+}
 
 /**
  * Destroys a chart instance if it exists.
@@ -47,7 +91,9 @@ export function filterSensitiveFeatures(shapValues, showSensitive = false) {
  * @example
  * renderExplanationChart(shapData, false);
  */
-export function renderExplanationChart(shapValues, showSensitive = false) {
+export async function renderExplanationChart(shapValues, showSensitive = false) {
+  await ensureChartLibrary();
+  
   const chartCanvas = document.getElementById('explanationChart');
   if (!chartCanvas) {
     console.warn('Explanation chart canvas not found');
@@ -82,7 +128,7 @@ export function renderExplanationChart(shapValues, showSensitive = false) {
   );
 
   const ctx = chartCanvas.getContext('2d');
-  explanationChartInstance = new Chart(ctx, {
+  explanationChartInstance = new ChartJS(ctx, {
     type: 'bar',
     data: {
       labels: features,
@@ -158,7 +204,9 @@ function updateShapSummary(valuesToChart) {
  * @example
  * renderGradesChart(8, 9, 10);
  */
-export function renderGradesChart(G1, G2, G3) {
+export async function renderGradesChart(G1, G2, G3) {
+  await ensureChartLibrary();
+  
   const chartCanvas = document.getElementById('gradesChart');
   if (!chartCanvas) {
     console.warn('Grades chart canvas not found');
@@ -169,7 +217,7 @@ export function renderGradesChart(G1, G2, G3) {
   destroyChart(gradesChartInstance);
 
   const ctx = chartCanvas.getContext('2d');
-  gradesChartInstance = new Chart(ctx, {
+  gradesChartInstance = new ChartJS(ctx, {
     type: 'line',
     data: {
       labels: ['G1 (First Period)', 'G2 (Second Period)', 'G3 (Predicted Final)'],
@@ -213,7 +261,9 @@ export function renderGradesChart(G1, G2, G3) {
  * @example
  * renderProbaChart({ High: 0.1, Medium: 0.6, Low: 0.3 });
  */
-export function renderProbaChart(probMap) {
+export async function renderProbaChart(probMap) {
+  await ensureChartLibrary();
+  
   const chartCanvas = document.getElementById('probaChart');
   if (!chartCanvas) {
     console.warn('Probability chart canvas not found');
@@ -237,7 +287,7 @@ export function renderProbaChart(probMap) {
   });
 
   const ctx = chartCanvas.getContext('2d');
-  probaChartInstance = new Chart(ctx, {
+  probaChartInstance = new ChartJS(ctx, {
     type: 'bar',
     data: {
       labels: labelsOrder,

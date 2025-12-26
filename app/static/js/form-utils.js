@@ -7,7 +7,32 @@ import APP_CONFIG from './config.js';
 import { addFieldError, clearFieldError, clearAllErrorsInStep, smoothScrollIntoView, showToast } from './ui-utils.js';
 
 /**
+ * Sanitizes text input to prevent XSS attacks.
+ * Removes HTML tags and dangerous characters.
+ * 
+ * @param {string} text - Text to sanitize
+ * @returns {string} Sanitized text
+ */
+export function sanitizeInput(text) {
+    if (typeof text !== 'string') return text;
+    
+    // Remove HTML tags using DOM API (safer than regex)
+    const div = document.createElement('div');
+    div.textContent = text;
+    let sanitized = div.innerHTML;
+    
+    // Remove dangerous patterns
+    sanitized = sanitized
+        .replace(/[<>]/g, '') // Remove angle brackets
+        .replace(/javascript:/gi, '') // Remove javascript: protocol
+        .replace(/on\w+=/gi, ''); // Remove event handlers
+    
+    return sanitized;
+}
+
+/**
  * Gathers all form data from input fields into a single object.
+ * Sanitizes text inputs to prevent XSS.
  * @returns {Object|null} Form data object or null if invalid.
  * @example
  * const formData = gatherFormData();
@@ -30,9 +55,9 @@ export function gatherFormData() {
     if (input.type === 'range' || input.type === 'number') {
       formData[input.id] = Number(value);
     } else if (input.tagName === 'SELECT' || input.type === 'text') {
-      formData[input.id] = String(value).trim();
+      formData[input.id] = sanitizeInput(String(value).trim());
     } else if (input.tagName === 'TEXTAREA') {
-      formData[input.id] = String(value).trim();
+      formData[input.id] = sanitizeInput(String(value).trim());
     } else {
       formData[input.id] = value;
     }

@@ -9,6 +9,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import shap
 import logging
+import bleach
 from .limits import limiter
 from .utils import send_faculty_alert
 from reportlab.lib.pagesizes import letter
@@ -263,6 +264,8 @@ def validate_student_data(data):
         custom = str(data.get('customPrompt', ''))
         if len(custom) > 500:
             raise ValueError("Custom prompt exceeds maximum length (500 chars)")
+        # Sanitize HTML/script tags to prevent XSS
+        data['customPrompt'] = bleach.clean(custom, tags=[], strip=True)
     
     return True
 
@@ -274,6 +277,7 @@ def index():
 
 # Lightweight health checks (useful for Render probes and curl tests)
 @main_bp.route('/healthz')
+@csrf_exempt_api
 def healthz():
     try:
         status = {
@@ -551,26 +555,26 @@ def generate_pdf():
             story.append(Spacer(1, 0.1*inch))
             
             try:
-                import html
-                import re
-                
                 advice_text = str(data['mentoring_advice'])
                 
-                # Remove emojis and non-ASCII
-                advice_text = re.sub(r'[^\x00-\x7F]+', ' ', advice_text)
+                # Use bleach for secure HTML sanitization (prevents ReDoS attacks)
+                advice_text = bleach.clean(
+                    advice_text,
+                    tags=[],  # Strip all HTML tags
+                    strip=True,
+                    protocols=[]
+                )
                 
-                # Convert markdown
-                advice_text = re.sub(r'###\s*', '', advice_text)
-                advice_text = re.sub(r'\*\*([^*]+)\*\*', r'\1', advice_text)
-                advice_text = re.sub(r'\*([^*]+)\*', r'\1', advice_text)
+                # Remove markdown formatting safely
+                advice_text = advice_text.replace('###', '').replace('**', '').replace('*', '')
                 advice_text = advice_text.replace('•', '- ')
                 
-                # Add paragraphs
+                # Add paragraphs (limit to prevent PDF bloat)
                 paragraphs = advice_text.split('\n\n')
                 for para in paragraphs[:10]:
                     if para.strip():
-                        clean_para = html.escape(para.strip())
-                        clean_para = clean_para.replace('\n', '<br/>')
+                        # Bleach already sanitized, safe to add
+                        clean_para = para.strip().replace('\n', '<br/>')
                         story.append(Paragraph(clean_para, styles['Normal']))
                         story.append(Spacer(1, 0.1*inch))
                 
