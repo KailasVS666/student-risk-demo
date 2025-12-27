@@ -249,26 +249,28 @@ def get_mentoring_strategy(risk_category):
     return strategies.get(risk_category.lower(), strategies['medium'])
 
 def generate_mentoring_advice(student_data, predicted_g3, risk_category, top_features):
-    # Allow mock mode to proceed even if gemini_model is None
-    if gemini_model is None and not USE_MOCK_MODE:
-        return "Mentoring advice unavailable."
+    """Generate mentoring advice using Gemini, with automatic mock fallback on errors/quota.
 
+    Returns a user-friendly advice string in all cases.
+    """
     strategy = get_mentoring_strategy(risk_category)
     feature_list = "\n".join([f"* **{f['feature']}**: Impact {f['importance']:.2f}" for f in top_features])
     custom_prompt_text = student_data.get('customPrompt', '').strip()
     custom_prompt_section = f"User Request: '{custom_prompt_text}'" if custom_prompt_text else ""
 
-    # Adjust instructions based on whether user provided custom prompt
+    # Task instructions adapt to custom prompt
     if custom_prompt_text:
-        task_instruction = f"IMPORTANT: Follow the user's request EXACTLY as stated. Adapt your tone, format, and style to match their instructions (e.g., if they request no emojis, don't use them; if they want brief bullets, be concise)."
+        task_instruction = (
+            "IMPORTANT: Follow the user's request EXACTLY as stated. Adapt tone/format as requested."
+        )
     else:
         task_instruction = "Provide advice in 3 sections (### headings) with max 4 bullets each."
-    
+
     prompt = f"""
     ROLE: You are an {strategy['persona']}.
     STRATEGY: {strategy['focus']}
     TONE: {strategy['tone']}
-    
+
     CONTEXT:
     {custom_prompt_section}
     - Predicted Final Grade: {predicted_g3} / 20
@@ -277,27 +279,34 @@ def generate_mentoring_advice(student_data, predicted_g3, risk_category, top_fea
     {feature_list}
 
     TASK: {task_instruction}
-    
+
     ### ⚡ Priority Actions
     (Advice specific to the {strategy['persona']})
-    
+
     ### 📚 Academic Plan
-    
+
     ### 🧘 Personal Growth
     """
 
+    # Always-available fallback advice
+    fallback = generate_mock_advice(risk_category, predicted_g3, custom_prompt_text)
+
     try:
-        # Check if mock mode is enabled
-        if USE_MOCK_MODE:
-            logger.info("Using mock advice (MOCK MODE enabled)")
-            return generate_mock_advice(risk_category, predicted_g3, custom_prompt_text)
-        
+        # Use mock mode explicitly when enabled or model missing
+        if USE_MOCK_MODE or gemini_model is None:
+            logger.info("Using mock advice (MOCK MODE or missing model)")
+            return fallback
+
+        # Attempt to call Gemini; on failure/quota, fall back gracefully
         response = gemini_model.generate_content(prompt)
-        advice_text = getattr(response, 'text', '').strip() or "No advice generated."
+        advice_text = getattr(response, 'text', '').strip()
+        if not advice_text:
+            logger.warning("Gemini returned empty advice; using fallback")
+            return fallback
         return f"> **{strategy['routing_action']}**\n\n{advice_text}"
     except Exception as e:
-        logger.error(f"Gemini API error: {e}")
-        return f"Error generating advice: {e}"
+        logger.warning(f"Gemini API error/quota, using fallback: {e}")
+        return fallback
 
 def validate_student_data(data):
     """
