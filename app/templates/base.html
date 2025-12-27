@@ -7,6 +7,24 @@
     
     <!-- Tailwind CSS (compiled) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tw-build.css') }}">
+    <!-- Fallback to CDN in dev if compiled file missing or not loaded -->
+    <script nonce="{{ csp_nonce() }}">
+        (function(){
+            try {
+                var el = document.createElement('div');
+                el.className = 'hidden';
+                document.body ? document.body.appendChild(el) : document.documentElement.appendChild(el);
+                var works = window.getComputedStyle(el).display === 'none';
+                el.remove();
+                if (!works) {
+                    window.tailwind = window.tailwind || {}; window.tailwind.config = { darkMode: 'class' };
+                    var s = document.createElement('script');
+                    s.src = 'https://cdn.tailwindcss.com';
+                    document.head.appendChild(s);
+                }
+            } catch(e) {}
+        })();
+    </script>
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

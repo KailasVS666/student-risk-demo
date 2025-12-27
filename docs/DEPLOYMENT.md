@@ -87,6 +87,20 @@ python run.py
 
 Visit `http://127.0.0.1:8501` in your browser.
 
+### 6. Tailwind CSS (UI styles)
+
+For production, Tailwind is compiled to `app/static/css/tw-build.css`.
+
+- Quick dev fallback: if the compiled file is missing, the app will load the Tailwind CDN automatically, suitable for local development only.
+- Recommended: install Node and build the CSS before running in production.
+
+```bash
+npm install
+npm run tailwind:build
+```
+
+This generates `app/static/css/tw-build.css` consumed by the templates.
+
 ---
 
 ## Environment Configuration

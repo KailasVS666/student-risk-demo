@@ -5,7 +5,8 @@
   "description": "Tailwind build for Flask app UI",
   "scripts": {
     "tailwind:build": "tailwindcss -c tailwind.config.js -i app/static/css/tailwind.css -o app/static/css/tw-build.css --minify",
-    "tailwind:watch": "tailwindcss -c tailwind.config.js -i app/static/css/tailwind.css -o app/static/css/tw-build.css --watch"
+    "tailwind:watch": "tailwindcss -c tailwind.config.js -i app/static/css/tailwind.css -o app/static/css/tw-build.css --watch",
+    "heroku-postbuild": "npm run tailwind:build"
   },
   "devDependencies": {
     "tailwindcss": "^3.4.15"
