@@ -251,30 +251,26 @@
             }, 3000);
         }
 
-        // Dark Mode Toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Theme script loaded');
-            const themeKey = 'student-mentor-theme';
-            const savedTheme = localStorage.getItem(themeKey) || 'light';
-            console.log('Saved theme:', savedTheme);
-            
-            function applyTheme(theme) {
-                console.log('Applying theme:', theme);
-                if (theme === 'dark') {
+        // Theme toggle is now handled by theme.js module (imported in assessment.html, etc.)
+        // This removes duplicate theme logic that was conflicting
+        // Fallback: if theme.js hasn't loaded yet, use a basic toggle
+        const themeToggleBtn = document.getElementById('themeToggle');
+        if (themeToggleBtn && !themeToggleBtn.hasListener) {
+            themeToggleBtn.addEventListener('click', function() {
+                const key = 'student_assessment_theme';
+                const current = localStorage.getItem(key) || 'light';
+                const next = current === 'light' ? 'dark' : 'light';
+                localStorage.setItem(key, next);
+                if (next === 'dark') {
                     document.documentElement.classList.add('dark');
-                    document.body.classList.add('bg-gray-900', 'text-white');
                 } else {
                     document.documentElement.classList.remove('dark');
-                    document.body.classList.remove('bg-gray-900', 'text-white');
                 }
-            }
-            
-            function updateIcons(theme) {
+                // Update icons
                 const lightIcon = document.getElementById('themeIconLight');
                 const darkIcon = document.getElementById('themeIconDark');
-                console.log('Light icon:', lightIcon, 'Dark icon:', darkIcon);
                 if (lightIcon && darkIcon) {
-                    if (theme === 'dark') {
+                    if (next === 'dark') {
                         lightIcon.classList.remove('hidden');
                         darkIcon.classList.add('hidden');
                     } else {
@@ -282,30 +278,9 @@
                         darkIcon.classList.remove('hidden');
                     }
                 }
-            }
-            
-            // Apply saved theme on load
-            applyTheme(savedTheme);
-            updateIcons(savedTheme);
-            
-            // Setup toggle button
-            const themeToggle = document.getElementById('themeToggle');
-            console.log('Theme toggle button:', themeToggle);
-            if (themeToggle) {
-                themeToggle.addEventListener('click', function(e) {
-                    console.log('Theme button clicked!');
-                    const currentTheme = localStorage.getItem(themeKey) || 'light';
-                    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-                    console.log('Switching from', currentTheme, 'to', newTheme);
-                    localStorage.setItem(themeKey, newTheme);
-                    applyTheme(newTheme);
-                    updateIcons(newTheme);
-                    showToast(`${newTheme === 'dark' ? 'Dark' : 'Light'} mode enabled`, 'success');
-                });
-            } else {
-                console.error('Theme toggle button not found!');
-            }
-        });
+            });
+            themeToggleBtn.hasListener = true;
+        }
 
 
         // Highlight active nav link
