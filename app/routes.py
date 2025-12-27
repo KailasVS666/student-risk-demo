@@ -79,15 +79,12 @@ except Exception as e:
 
 # Initialize Gemini
 gemini_model = None
-USE_MOCK_MODE = os.getenv('USE_MOCK_MODE', 'false').lower() == 'true'
 
 try:
-    if GEMINI_API_KEY and not USE_MOCK_MODE:
+    if GEMINI_API_KEY:
         genai.configure(api_key=GEMINI_API_KEY)
         gemini_model = genai.GenerativeModel('gemini-2.0-flash-lite')
         logger.info("Gemini model initialized successfully.")
-    elif USE_MOCK_MODE:
-        logger.info("Running in MOCK MODE - using demo advice")
     else:
         logger.warning("GEMINI_API_KEY not found.")
 except Exception as e:
@@ -292,9 +289,9 @@ def generate_mentoring_advice(student_data, predicted_g3, risk_category, top_fea
     fallback = generate_mock_advice(risk_category, predicted_g3, custom_prompt_text)
 
     try:
-        # Use mock mode explicitly when enabled or model missing
-        if USE_MOCK_MODE or gemini_model is None:
-            logger.info("Using mock advice (MOCK MODE or missing model)")
+        # Fallback only when Gemini model is unavailable
+        if gemini_model is None:
+            logger.info("Using mock advice (Gemini model unavailable)")
             return fallback
 
         # Attempt to call Gemini; on failure/quota, fall back gracefully
