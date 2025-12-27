@@ -261,12 +261,16 @@
                 const next = current === 'light' ? 'dark' : 'light';
                 localStorage.setItem(key, next);
                 
-                // Apply theme to html element
+                // Apply theme to html and body elements
                 const htmlEl = document.documentElement;
+                const bodyEl = document.body;
+                
                 if (next === 'dark') {
                     htmlEl.classList.add('dark');
+                    bodyEl.classList.add('dark:bg-gray-900');
                 } else {
                     htmlEl.classList.remove('dark');
+                    bodyEl.classList.remove('dark:bg-gray-900');
                 }
                 
                 // Update icons

@@ -19,10 +19,15 @@ export function initTheme() {
  * @param {string} theme - 'light' or 'dark'
  */
 export function applyTheme(theme) {
+  const htmlEl = document.documentElement;
+  const bodyEl = document.body;
+  
   if (theme === 'dark') {
-    document.documentElement.classList.add('dark');
+    htmlEl.classList.add('dark');
+    bodyEl.classList.add('dark:bg-gray-900');
   } else {
-    document.documentElement.classList.remove('dark');
+    htmlEl.classList.remove('dark');
+    bodyEl.classList.remove('dark:bg-gray-900');
   }
 }
 
