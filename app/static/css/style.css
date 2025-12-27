@@ -1335,3 +1335,342 @@ canvas {
     border-color: #1f2937;
     box-shadow: 0 20px 45px rgba(0,0,0,0.35);
 }
+
+/* ============================================================================
+   MODERN ANIMATIONS & EFFECTS
+   ============================================================================ */
+
+/* --- Particle Background --- */
+.particle-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.particle {
+    position: absolute;
+    background: radial-gradient(circle, rgba(124, 248, 255, 0.6), transparent);
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(2px);
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) translateX(0);
+        opacity: 0.3;
+    }
+    25% {
+        transform: translateY(-30px) translateX(20px);
+        opacity: 0.6;
+    }
+    50% {
+        transform: translateY(-60px) translateX(-10px);
+        opacity: 0.4;
+    }
+    75% {
+        transform: translateY(-30px) translateX(-30px);
+        opacity: 0.7;
+    }
+}
+
+/* --- Scroll Reveal Animations --- */
+[data-animate] {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-animate].animate-in {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+[data-animate="fade"] {
+    transform: none;
+}
+
+[data-animate="fade"].animate-in {
+    opacity: 1;
+}
+
+[data-animate="slide-left"] {
+    transform: translateX(-30px);
+}
+
+[data-animate="slide-left"].animate-in {
+    transform: translateX(0);
+}
+
+[data-animate="slide-right"] {
+    transform: translateX(30px);
+}
+
+[data-animate="slide-right"].animate-in {
+    transform: translateX(0);
+}
+
+[data-animate="scale"] {
+    transform: scale(0.95);
+}
+
+[data-animate="scale"].animate-in {
+    transform: scale(1);
+}
+
+/* --- Ripple Effect --- */
+[data-ripple] {
+    position: relative;
+    overflow: hidden;
+}
+
+.ripple-effect {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: scale(0);
+    animation: ripple-animation 0.6s ease-out;
+    pointer-events: none;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* --- Card Tilt Effect --- */
+[data-tilt] {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+/* --- Magnetic Button --- */
+[data-magnetic] {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+/* --- Gradient Animation --- */
+.animated-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+}
+
+@keyframes gradient-shift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* --- Glow Pulse Effect --- */
+.glow-pulse {
+    animation: glow-pulse-animation 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse-animation {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(94, 242, 197, 0.3),
+                    0 0 40px rgba(94, 242, 197, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(94, 242, 197, 0.5),
+                    0 0 60px rgba(94, 242, 197, 0.3);
+    }
+}
+
+/* --- Shimmer Loading --- */
+.shimmer {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* --- Bounce Entrance --- */
+.bounce-in {
+    animation: bounce-in-animation 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes bounce-in-animation {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* --- Slide Up Fade --- */
+.slide-up-fade {
+    animation: slide-up-fade-animation 0.5s ease-out;
+}
+
+@keyframes slide-up-fade-animation {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- Success Celebration --- */
+.success-celebration {
+    animation: success-celebration-animation 0.5s ease-out;
+}
+
+@keyframes success-celebration-animation {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1) rotate(2deg);
+    }
+    100% {
+        transform: scale(1) rotate(0);
+    }
+}
+
+/* --- Floating Animation --- */
+.float {
+    animation: float-animation 3s ease-in-out infinite;
+}
+
+@keyframes float-animation {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* --- Rotate Infinite --- */
+.rotate-slow {
+    animation: rotate-slow 20s linear infinite;
+}
+
+@keyframes rotate-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* --- Enhanced Button Hover --- */
+.btn-hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-hover-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 40px rgba(94, 242, 197, 0.3);
+}
+
+.btn-hover-lift:active {
+    transform: translateY(-1px);
+}
+
+/* --- Card Hover Glow --- */
+.card-hover-glow {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.card-hover-glow::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, var(--accent), var(--accent-2), var(--accent-strong));
+    border-radius: inherit;
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.3s ease;
+    filter: blur(8px);
+}
+
+.card-hover-glow:hover::before {
+    opacity: 1;
+}
+
+/* --- Progress Ring Animation --- */
+.progress-ring-circle {
+    transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+}
+
+/* --- Skeleton Screen Variations --- */
+.skeleton-line {
+    height: 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+}
+
+.skeleton-text {
+    height: 16px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+}
+
+/* --- Gradient Text --- */
+.gradient-text {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent-strong) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* --- Glass Morphism Enhanced --- */
+.glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.dark .glass-card {
+    background: rgba(17, 25, 45, 0.4);
+    border: 1px solid rgba(124, 248, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}

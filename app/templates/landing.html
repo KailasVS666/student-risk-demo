@@ -4,73 +4,91 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Student Mentor - Early Warning System for At-Risk Students</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tw-build.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .hero-gradient {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
         .tech-badge {
             transition: all 0.3s ease;
+            cursor: pointer;
         }
         .tech-badge:hover {
-            transform: scale(1.1);
+            transform: translateY(-4px) scale(1.08);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: scale(1.05);
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 dark">
     <!-- Navigation -->
-    <nav class="bg-white shadow-md fixed w-full top-0 z-50">
+    <nav class="glass-nav">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
                     <svg class="w-8 h-8 text-indigo-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                     </svg>
-                    <span class="text-xl font-bold text-gray-800">AI Student Mentor</span>
+                    <span class="text-xl font-bold text-primary">AI Student Mentor</span>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <a href="/login" class="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Login</a>
-                    <a href="/signup" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">Sign Up</a>
+                    <a href="/login" class="text-muted hover:text-accent-2 font-medium transition-colors">Login</a>
+                    <a href="/signup" data-magnetic data-ripple class="px-6 py-2 btn-primary rounded-lg font-medium">Sign Up</a>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-gradient text-white pt-32 pb-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
+    <section class="hero-gradient text-white pt-32 pb-20 relative">
+        <!-- Particle Container -->
+        <div id="particle-container" class="particle-container"></div>
+        
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center" data-animate="fade">
                 <h1 class="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-                    Predict & Prevent<br/>Student Academic Failure
+                    <span class="inline-block" data-animate-child>Predict & Prevent</span><br/>
+                    <span class="inline-block gradient-text" data-animate-child>Student Academic Failure</span>
                 </h1>
-                <p class="text-xl md:text-2xl mb-8 text-indigo-100 max-w-3xl mx-auto">
+                <p class="text-xl md:text-2xl mb-8 text-indigo-100 max-w-3xl mx-auto" data-animate-child>
                     AI-powered early warning system that identifies at-risk students and provides personalized mentoring advice
                 </p>
-                <div class="flex flex-col sm:flex-row justify-center gap-4">
-                    <a href="/signup" class="px-8 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl">
+                <div class="flex flex-col sm:flex-row justify-center gap-4" data-animate-child>
+                    <a href="/signup" data-magnetic data-ripple class="px-8 py-4 bg-white text-indigo-600 rounded-lg font-bold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl btn-hover-lift">
                         Get Started Free
                     </a>
-                    <a href="/about" class="px-8 py-4 bg-indigo-700 text-white rounded-lg font-bold text-lg hover:bg-indigo-800 transition-all border-2 border-white">
+                    <a href="/about" class="px-8 py-4 bg-indigo-700 text-white rounded-lg font-bold text-lg hover:bg-indigo-800 transition-all border-2 border-white btn-hover-lift">
                         Learn More
                     </a>
                 </div>
                 
                 <!-- Demo Stats -->
-                <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                    <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6">
-                        <div class="text-4xl font-bold mb-2">85%+</div>
+                <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto" data-animate-child>
+                    <div class="stat-card bg-white/10 backdrop-blur-lg rounded-xl p-6 glass-card" data-tilt>
+                        <div class="text-4xl font-bold mb-2" id="stat-accuracy">85</div>
                         <div class="text-indigo-100">Prediction Accuracy</div>
                     </div>
-                    <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6">
-                        <div class="text-4xl font-bold mb-2">30+</div>
+                    <div class="stat-card bg-white/10 backdrop-blur-lg rounded-xl p-6 glass-card" data-tilt>
+                        <div class="text-4xl font-bold mb-2" id="stat-features">30</div>
                         <div class="text-indigo-100">Features Analyzed</div>
                     </div>
-                    <div class="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+                    <div class="stat-card bg-white/10 backdrop-blur-lg rounded-xl p-6 glass-card glow-pulse" data-tilt>
                         <div class="text-4xl font-bold mb-2">100%</div>
                         <div class="text-indigo-100">Free to Use</div>
                     </div>
@@ -296,5 +314,37 @@
             </div>
         </div>
     </footer>
+
+    <script type="module">
+        import { 
+            createParticleBackground, 
+            initScrollAnimations, 
+            initMagneticButtons,
+            initRippleButtons,
+            initCardTilt,
+            animateCounter
+        } from "{{ url_for('static', filename='js/animations.js') }}";
+
+        // Initialize all animations
+        document.addEventListener('DOMContentLoaded', () => {
+            // Create particles in hero
+            createParticleBackground('particle-container');
+            
+            // Initialize scroll reveals
+            initScrollAnimations();
+            
+            // Initialize interactive elements
+            initMagneticButtons();
+            initRippleButtons();
+            initCardTilt();
+            
+            // Animate counters
+            setTimeout(() => {
+                animateCounter('stat-accuracy', 85, 2000);
+                animateCounter('stat-features', 30, 1500);
+            }, 500);
+        });
+    </script>
 </body>
 </html>
+
