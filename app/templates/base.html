@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AI Student Mentor{% endblock %}</title>
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (compiled) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tw-build.css') }}">
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -28,23 +28,18 @@
         try { localStorage.setItem('student_assessment_theme', 'dark'); } catch (e) {}
     </script>
     
-    <script nonce="{{ csp_nonce() }}">
-        tailwind.config = {
-            darkMode: 'class',
-        }
-    </script>
+    <!-- Removed inline Tailwind config; handled in tailwind.config.js -->
     
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
         
-        /* Dark mode styles */
-        /* Remove legacy light/dark utility overrides from inline styles */
-        .nav-link { @apply transition-colors duration-200 font-medium; }
-        .btn-icon { @apply p-2 rounded-lg transition-colors duration-200; }
-        .mobile-menu { @apply md:hidden absolute top-full left-0 right-0 rounded-b-lg p-4 space-y-3; }
-        .footer-link { @apply transition-colors duration-200; }
+        /* Basic transitions without Tailwind @apply (compiled separately) */
+        .nav-link { transition: color 0.2s ease; font-weight: 500; }
+        .btn-icon { padding: 0.5rem; border-radius: 0.5rem; transition: color 0.2s ease, background-color 0.2s ease; }
+        .mobile-menu { position: absolute; top: 100%; left: 0; right: 0; border-bottom-left-radius: 0.5rem; border-bottom-right-radius: 0.5rem; padding: 1rem; }
+        .footer-link { transition: color 0.2s ease; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">

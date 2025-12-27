@@ -1,4 +1,7 @@
-# Normalize line endings across platforms
+* text=auto eol=lf
+# Keep Windows scripts with CRLF if needed
+*.bat eol=crlf
+*.cmd eol=crlf# Normalize line endings across platforms
 * text=auto
 
 # Force LF for source files
