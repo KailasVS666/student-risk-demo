@@ -76,6 +76,7 @@ const APP_CONFIG = {
   // ===== UI Text & Strings =====
   MESSAGES: {
     FORM_INCOMPLETE: 'Please complete the highlighted fields before continuing.',
+    REQUIRED_FIELD: 'Please provide a value.',
     INVALID_GRADES: 'Grades must be zero or positive.',
     PROFILE_SAVED: (name) => `Profile "${name}" saved successfully!`,
     PROFILE_LOADED: (name) => `Profile "${name}" loaded!`,
@@ -132,7 +133,21 @@ const APP_CONFIG = {
     MIN_STUDY_TIME: 1,
     MAX_STUDY_TIME: 4,
     MIN_AGE: 15,
-    MAX_AGE: 25
+    MAX_AGE: 25,
+    MIN_TRAVELTIME: 1,
+    MAX_TRAVELTIME: 4,
+    MIN_FREETIME: 1,
+    MAX_FREETIME: 5,
+    MIN_GOOUT: 1,
+    MAX_GOOUT: 5,
+    MIN_ALC: 1,
+    MAX_ALC: 5,
+    MIN_HEALTH: 1,
+    MAX_HEALTH: 5,
+    MIN_FAILURES: 0,
+    MAX_FAILURES: 4,
+    MIN_ABSENCES: 0,
+    MAX_ABSENCES: 93
   },
 
   // ===== Probability Labels Order =====

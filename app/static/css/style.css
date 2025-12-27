@@ -372,3 +372,114 @@ input[type="range"]::-moz-range-thumb {
 .dark .bg-green-700 {
     background-color: #15803d !important;
 }
+
+/* --- Skeleton Loaders & Progress --- */
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 37%, #f3f4f6 63%);
+    background-size: 400% 100%;
+    animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+.skeleton-dark {
+    background: linear-gradient(90deg, #1f2937 25%, #111827 37%, #1f2937 63%);
+}
+
+.skeleton-pill {
+    border-radius: 9999px;
+}
+
+.skeleton-bar {
+    height: 12px;
+    border-radius: 9999px;
+}
+
+.skeleton-rect {
+    border-radius: 12px;
+}
+
+.skeleton-circle {
+    border-radius: 9999px;
+}
+
+@keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.progress-rail {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #e5e7eb, #f3f4f6);
+    overflow: hidden;
+}
+
+.progress-indeterminate {
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 40%;
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, rgba(79,70,229,0.8), rgba(99,102,241,0.9));
+    animation: progress-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes progress-slide {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(300%); }
+}
+
+.dark .skeleton {
+    background: linear-gradient(90deg, #1f2937 25%, #111827 37%, #1f2937 63%);
+}
+
+.dark .progress-rail {
+    background: linear-gradient(90deg, #111827, #1f2937);
+}
+
+.dark .progress-indeterminate {
+    background: linear-gradient(90deg, rgba(99,102,241,0.9), rgba(129,140,248,0.9));
+}
+
+.dark #actionProgress {
+    color: #c7d2fe;
+}
+
+/* --- Sticky Action Bar --- */
+.action-bar {
+    position: fixed;
+    bottom: 16px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    padding: 0 16px;
+    z-index: 40;
+    pointer-events: none;
+}
+
+.action-bar__inner {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,0.96);
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.12);
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+}
+
+.dark .action-bar__inner {
+    background: rgba(17,24,39,0.92);
+    border-color: #1f2937;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.35);
+}

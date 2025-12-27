@@ -141,6 +141,99 @@ export function gatherFormData() {
   return Object.keys(formData).length > 0 ? formData : null;
 }
 
+function getValidationResult(el) {
+  const valueRaw = (el.value ?? '').toString().trim();
+
+  if (!valueRaw && valueRaw !== '0') {
+    return { valid: false, message: APP_CONFIG.MESSAGES.REQUIRED_FIELD };
+  }
+
+  const id = el.id;
+  const v = Number(valueRaw);
+  const isNumeric = ['range', 'number'].includes(el.type);
+
+  const within = (num, min, max) => num >= min && num <= max;
+
+  if (isNumeric) {
+    if (Number.isNaN(v)) {
+      return { valid: false, message: 'Enter a numeric value.' };
+    }
+
+    switch (id) {
+      case 'age':
+        if (!within(v, APP_CONFIG.VALIDATION.MIN_AGE, APP_CONFIG.VALIDATION.MAX_AGE)) {
+          return { valid: false, message: `Age must be ${APP_CONFIG.VALIDATION.MIN_AGE}-${APP_CONFIG.VALIDATION.MAX_AGE}.` };
+        }
+        break;
+      case 'studytime':
+        if (!within(v, APP_CONFIG.VALIDATION.MIN_STUDY_TIME, APP_CONFIG.VALIDATION.MAX_STUDY_TIME)) {
+          return { valid: false, message: `Study time must be ${APP_CONFIG.VALIDATION.MIN_STUDY_TIME}-${APP_CONFIG.VALIDATION.MAX_STUDY_TIME}.` };
+        }
+        break;
+      case 'traveltime':
+        if (!within(v, APP_CONFIG.VALIDATION.MIN_TRAVELTIME, APP_CONFIG.VALIDATION.MAX_TRAVELTIME)) {
+          return { valid: false, message: 'Travel time must be 1-4.' };
+        }
+        break;
+      case 'freetime':
+        if (!within(v, APP_CONFIG.VALIDATION.MIN_FREETIME, APP_CONFIG.VALIDATION.MAX_FREETIME)) {
+          return { valid: false, message: 'Free time must be 1-5.' };
+        }
+        break;
+      case 'goout':
+        if (!within(v, APP_CONFIG.VALIDATION.MIN_GOOUT, APP_CONFIG.VALIDATION.MAX_GOOUT)) {
+          return { valid: false, message: 'Going out must be 1-5.' };
+        }
+        break;
+      case 'Dalc':
+      case 'Walc':
+        if (!within(v, APP_CONFIG.VALIDATION.MIN_ALC, APP_CONFIG.VALIDATION.MAX_ALC)) {
+          return { valid: false, message: 'Alcohol use must be 1-5.' };
+        }
+        break;
+      case 'health':
+        if (!within(v, APP_CONFIG.VALIDATION.MIN_HEALTH, APP_CONFIG.VALIDATION.MAX_HEALTH)) {
+          return { valid: false, message: 'Health must be 1-5.' };
+        }
+        break;
+      case 'failures':
+        if (!within(v, APP_CONFIG.VALIDATION.MIN_FAILURES, APP_CONFIG.VALIDATION.MAX_FAILURES)) {
+          return { valid: false, message: 'Failures must be 0-4.' };
+        }
+        break;
+      case 'absences':
+        if (!within(v, APP_CONFIG.VALIDATION.MIN_ABSENCES, APP_CONFIG.VALIDATION.MAX_ABSENCES)) {
+          return { valid: false, message: 'Absences must be 0-93.' };
+        }
+        break;
+      case 'G1':
+      case 'G2':
+        if (!within(v, APP_CONFIG.VALIDATION.MIN_GRADE, APP_CONFIG.VALIDATION.MAX_GRADE)) {
+          return { valid: false, message: 'Grades must be 0-20.' };
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  return { valid: true };
+}
+
+export function validateFieldInline(el) {
+  if (!el) return true;
+
+  const { valid, message } = getValidationResult(el);
+
+  if (!valid) {
+    addFieldError(el, message);
+  } else {
+    clearFieldError(el);
+  }
+
+  return valid;
+}
+
 /**
  * Validates a specific form step.
  * @param {number} step - The step index to validate.
@@ -162,19 +255,10 @@ export function validateStep(step) {
       return;
     }
 
-    let isValid = false;
+    const { valid, message } = getValidationResult(el);
 
-    // Validate based on input type
-    if (el.tagName === 'SELECT' || el.type === 'text' || el.tagName === 'TEXTAREA') {
-      isValid = (el.value || '').toString().trim().length > 0;
-    } else if (el.type === 'range' || el.type === 'number') {
-      isValid = (el.value || '') !== '' && !Number.isNaN(Number(el.value));
-    } else {
-      isValid = (el.value || '') !== '';
-    }
-
-    if (!isValid) {
-      addFieldError(el, 'Please provide a value');
+    if (!valid) {
+      addFieldError(el, message);
       if (!firstInvalidEl) {
         firstInvalidEl = el;
       }
@@ -365,6 +449,7 @@ export function validateAllSteps() {
 export default {
   gatherFormData,
   validateStep,
+  validateFieldInline,
   populateFormWithData,
   clearForm,
   markFormDirty,

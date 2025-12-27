@@ -5,6 +5,7 @@
 
 import APP_CONFIG from './config.js';
 import { validateStep, markFormDirty } from './form-utils.js';
+import { safeGetElement } from './ui-utils.js';
 
 /**
  * WizardManager Class
@@ -24,6 +25,8 @@ export class WizardManager {
     this.nextBtn = document.getElementById('nextBtn');
     this.prevBtn = document.getElementById('prevBtn');
     this.generateAdviceBtn = document.getElementById('generateAdviceBtn');
+    this.actionStepLabel = safeGetElement('actionStepLabel', false);
+    this.actionStepTitle = safeGetElement('actionStepTitle', false);
 
     this.init();
   }
@@ -108,6 +111,7 @@ export class WizardManager {
     this.updateProgressIndicators();
     this.updateProgressBar();
     this.updateNavigationButtons();
+    this.updateActionBarText();
   }
 
   /**
@@ -184,6 +188,24 @@ export class WizardManager {
         this.generateAdviceBtn.disabled = true;
       }
     }
+
+    this.updateActionBarText();
+  }
+
+  /**
+   * Updates the sticky action bar step text.
+   * @private
+   */
+  updateActionBarText() {
+    if (!this.actionStepLabel || !this.actionStepTitle) return;
+
+    this.actionStepLabel.textContent = `Step ${this.currentStep + 1} of ${this.totalSteps}`;
+    const labels = [
+      'Demographics',
+      'Family & Education',
+      'Academic & Social'
+    ];
+    this.actionStepTitle.textContent = labels[this.currentStep] || 'Step';
   }
 
   /**

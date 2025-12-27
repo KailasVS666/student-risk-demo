@@ -22,6 +22,7 @@ import {
 import {
   gatherFormData,
   validateStep,
+  validateFieldInline,
   populateFormWithData,
   clearForm,
   markFormDirty,
@@ -81,6 +82,31 @@ let firebaseServices = null;
 let currentUserEmail = null;
 let lastShapValuesRaw = null;
 let currentAssessmentResults = null;
+let stepIndicatorText = null;
+
+// ============================================================================
+// UI HELPERS
+// ============================================================================
+
+function setActionProgress(show, message) {
+  const container = safeGetElement('actionProgress', false);
+  const textEl = safeGetElement('actionProgressText', false);
+
+  if (container) {
+    container.classList.toggle('hidden', !show);
+  }
+
+  if (textEl && message) {
+    textEl.textContent = message;
+  }
+}
+
+function toggleResultsSkeleton(show) {
+  const skeleton = safeGetElement('resultsSkeleton', false);
+  if (skeleton) {
+    skeleton.classList.toggle('hidden', !show);
+  }
+}
 
 // Make available globally for external access if needed
 window.wizard = null;
@@ -149,6 +175,24 @@ async function initializeApp() {
   }
 }
 
+function updateActionBarStep(wizardInstance) {
+  if (!wizardInstance) return;
+  const labelEl = safeGetElement('actionStepLabel', false);
+  const titleEl = safeGetElement('actionStepTitle', false);
+
+  const current = wizardInstance.getCurrentStep();
+  const total = wizardInstance.getTotalSteps();
+  const title = wizardInstance.getStepLabel(current);
+
+  if (labelEl) {
+    labelEl.textContent = `Step ${current + 1} of ${total}`;
+  }
+
+  if (titleEl) {
+    titleEl.textContent = title;
+  }
+}
+
 // ============================================================================
 // FORM EVENT LISTENERS
 // ============================================================================
@@ -170,6 +214,11 @@ function setupFormEventListeners() {
     field.addEventListener('change', () => {
       clearFieldError(field);
       markFormDirty();
+      validateFieldInline(field);
+    });
+
+    field.addEventListener('blur', () => {
+      validateFieldInline(field);
     });
   });
 
@@ -221,10 +270,14 @@ async function handlePredictionRequest() {
 
   setMultipleVisibility({
     resultsSection: true,
-    loadingSpinner: true,
+    loadingSpinner: false,
+    resultsSkeleton: true,
     adviceContent: false,
     explanationChartContainer: false
   });
+
+  setActionProgress(true, 'Analyzing profile and generating mentoring advice...');
+  toggleResultsSkeleton(true);
 
   try {
     // 1. Call prediction API
@@ -244,9 +297,12 @@ async function handlePredictionRequest() {
     // 3. Hide loading
     setMultipleVisibility({
       loadingSpinner: false,
+      resultsSkeleton: false,
       adviceContent: true,
       explanationChartContainer: true
     });
+    setActionProgress(false);
+    toggleResultsSkeleton(false);
 
     // 4. Render results
     displayResults(result);
@@ -275,8 +331,11 @@ async function handlePredictionRequest() {
     handleError(error, { context: 'Risk Prediction' });
     setMultipleVisibility({
       loadingSpinner: false,
+      resultsSkeleton: false,
       adviceContent: false
     });
+    setActionProgress(false);
+    toggleResultsSkeleton(false);
   } finally {
     if (generateAdviceBtn) {
       setButtonLoading(generateAdviceBtn, false, 'Generate Mentoring Advice');
@@ -666,6 +725,8 @@ async function handlePDFDownload() {
     downloadPdfBtn.textContent = APP_CONFIG.BUTTON_TEXT.PDF_GENERATING;
   }
 
+  setActionProgress(true, 'Generating PDF report...');
+
   try {
     const pdfBlob = await generatePDF(currentAssessmentResults);
     downloadPDFFile(pdfBlob, `student_report_${Date.now()}.pdf`);
@@ -674,6 +735,8 @@ async function handlePDFDownload() {
     console.error('PDF download error:', error);
     showToast(APP_CONFIG.MESSAGES.PDF_ERROR, 'error');
   } finally {
+    setActionProgress(false);
+
     if (downloadPdfBtn) {
       downloadPdfBtn.disabled = false;
       downloadPdfBtn.innerHTML = `
