@@ -11,7 +11,7 @@
     </div>
 
     <!-- Filters and Search -->
-    <div class="neo-panel panel-spacing mb-6">
+    <div class="neo-panel panel-spacing mb-6" data-animate="fade">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Search -->
             <div class="md:col-span-2">
@@ -47,7 +47,7 @@
                 <button id="sortOldest" class="sort-btn">Oldest First</button>
                 <button id="sortName" class="sort-btn">Name (A-Z)</button>
             </div>
-            <button id="exportCsvBtn" class="btn-primary px-4 py-2 rounded-lg font-bold flex items-center gap-2">
+            <button id="exportCsvBtn" class="btn-primary px-4 py-2 rounded-lg font-bold flex items-center gap-2 glow-pulse" data-magnetic data-ripple>
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
@@ -69,13 +69,13 @@
         </svg>
         <h3 class="text-xl font-semibold text-primary mb-2">No assessments found</h3>
         <p class="text-muted mb-6">You haven't created any student assessments yet</p>
-        <a href="/assessment" class="btn-primary inline-flex px-6 py-3 rounded-lg font-semibold">
+        <a href="/assessment" class="btn-primary inline-flex px-6 py-3 rounded-lg font-semibold" data-magnetic data-ripple>
             Create Your First Assessment
         </a>
     </div>
 
     <!-- History List -->
-    <div id="historyList" class="space-y-4 hidden">
+    <div id="historyList" class="space-y-4 hidden" data-animate="fade" data-animate-child>
         <!-- History items will be dynamically inserted here -->
     </div>
 
@@ -364,5 +364,16 @@ import { showToast } from '/static/js/ui-utils.js';
         }
     });
 })();
+</script>
+
+<script type="module" nonce="{{ csp_nonce() }}">
+import { initScrollAnimations, initMagneticButtons, initRippleButtons } from '/static/js/animations.js';
+
+// Initialize animations on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initScrollAnimations();
+    initMagneticButtons();
+    initRippleButtons();
+});
 </script>
 {% endblock %}

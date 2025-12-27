@@ -11,17 +11,17 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8" data-animate="fade" data-animate-child>
         <!-- Total Assessments -->
-        <div class="neo-panel stat-card hover-lift">
+        <div class="neo-panel stat-card hover-lift card-hover-glow" data-tilt>
             <div class="flex items-center justify-between">
                 <div>
                     <p class="stat-label">Total Assessments</p>
-                    <p class="stat-value" id="totalAssessments">
+                    <p class="stat-value" id="totalAssessments" data-counter="0">
                         <span class="inline-block animate-pulse">--</span>
                     </p>
                 </div>
-                <div class="stat-icon">
+                <div class="stat-icon float" style="animation-delay: 0s;">
                     <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                     </svg>
@@ -30,7 +30,7 @@
         </div>
 
         <!-- Average Risk Level -->
-        <div class="neo-panel stat-card hover-lift">
+        <div class="neo-panel stat-card hover-lift card-hover-glow" data-tilt>
             <div class="flex items-center justify-between">
                 <div>
                     <p class="stat-label">Avg Risk Level</p>
@@ -38,7 +38,7 @@
                         <span class="inline-block animate-pulse">--</span>
                     </p>
                 </div>
-                <div class="stat-icon">
+                <div class="stat-icon float" style="animation-delay: 0.2s;">
                     <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
@@ -47,7 +47,7 @@
         </div>
 
         <!-- Last Activity -->
-        <div class="neo-panel stat-card hover-lift">
+        <div class="neo-panel stat-card hover-lift card-hover-glow" data-tilt>
             <div class="flex items-center justify-between">
                 <div>
                     <p class="stat-label">Last Activity</p>
@@ -55,7 +55,7 @@
                         <span class="inline-block animate-pulse">--</span>
                     </p>
                 </div>
-                <div class="stat-icon">
+                <div class="stat-icon float" style="animation-delay: 0.4s;">
                     <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
@@ -65,24 +65,24 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="neo-panel quick-panel hover-lift mb-8">
+    <div class="neo-panel quick-panel hover-lift mb-8" data-animate="slide-up">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-                <p class="pill">AI Insights</p>
+                <p class="pill animated-gradient">AI Insights</p>
                 <h2 class="text-2xl font-bold text-primary mb-1">Ready to analyze a student?</h2>
                 <p class="text-muted">Create a new assessment and get AI-powered insights in minutes.</p>
             </div>
-            <a href="/assessment" class="btn-primary px-6 py-3 rounded-lg font-bold flex items-center gap-2">
+            <a href="/assessment" class="btn-primary px-6 py-3 rounded-lg font-bold flex items-center gap-2" data-magnetic data-ripple>
                 <span>+ New Assessment</span>
             </a>
         </div>
     </div>
 
     <!-- Recent Profiles -->
-    <div class="neo-panel panel-spacing">
+    <div class="neo-panel panel-spacing" data-animate="slide-up">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold text-primary">Recent Profiles</h2>
-            <a href="/history" class="text-accent font-medium text-sm hover:underline">
+            <a href="/history" class="text-accent font-medium text-sm hover:underline glow-pulse">
                 View All →
             </a>
         </div>
@@ -319,5 +319,36 @@
         }
     }
 })();
+</script>
+
+<script type="module" nonce="{{ csp_nonce() }}">
+import { initScrollAnimations, initMagneticButtons, initRippleButtons, initCardTilt, animateCounter } from '/static/js/animations.js';
+
+// Initialize all animations on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initScrollAnimations();
+    initMagneticButtons();
+    initRippleButtons();
+    initCardTilt();
+    
+    // Animate stat counters when data loads
+    const observeStatCards = new MutationObserver(() => {
+        const totalAssessments = document.getElementById('totalAssessments');
+        if (totalAssessments && totalAssessments.textContent !== '--' && !totalAssessments.classList.contains('counted')) {
+            totalAssessments.classList.add('counted');
+            const value = parseInt(totalAssessments.textContent);
+            if (!isNaN(value)) {
+                totalAssessments.textContent = '0';
+                animateCounter(totalAssessments, value, 1500);
+            }
+        }
+    });
+    
+    observeStatCards.observe(document.getElementById('totalAssessments'), { 
+        childList: true, 
+        characterData: true, 
+        subtree: true 
+    });
+});
 </script>
 {% endblock %}

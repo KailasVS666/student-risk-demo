@@ -5,13 +5,13 @@
 {% block content %}
 <div class="max-w-5xl mx-auto">
     <!-- Hero Section -->
-    <div class="text-center mb-12">
+    <div class="text-center mb-12" data-animate="fade">
         <h1 class="text-4xl font-bold text-gray-800 mb-4">About AI Student Mentor</h1>
         <p class="text-xl text-gray-600">Empowering educators with AI-driven early warning systems to identify at-risk students</p>
     </div>
 
     <!-- Mission -->
-    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-8 mb-8">
+    <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-8 mb-8 card-hover-glow" data-animate="slide-up">
         <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
             <svg class="w-8 h-8 mr-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
@@ -25,12 +25,12 @@
     </div>
 
     <!-- How It Works -->
-    <div class="bg-white rounded-xl shadow-md p-8 mb-8">
+    <div class="bg-white rounded-xl shadow-md p-8 mb-8" data-animate="fade">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">How It Works</h2>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8" data-animate-child>
             <div class="text-center">
-                <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div class="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 float" style="animation-delay: 0s;">
                     <span class="text-2xl font-bold text-indigo-600">1</span>
                 </div>
                 <h3 class="text-lg font-bold text-gray-800 mb-2">Input Data</h3>
@@ -38,7 +38,7 @@
             </div>
             
             <div class="text-center">
-                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 float" style="animation-delay: 0.2s;">
                     <span class="text-2xl font-bold text-purple-600">2</span>
                 </div>
                 <h3 class="text-lg font-bold text-gray-800 mb-2">AI Analysis</h3>
@@ -46,7 +46,7 @@
             </div>
             
             <div class="text-center">
-                <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div class="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4 float" style="animation-delay: 0.4s;">
                     <span class="text-2xl font-bold text-pink-600">3</span>
                 </div>
                 <h3 class="text-lg font-bold text-gray-800 mb-2">Get Insights</h3>
@@ -56,10 +56,10 @@
     </div>
 
     <!-- Technology Stack -->
-    <div class="bg-white rounded-xl shadow-md p-8 mb-8">
+    <div class="bg-white rounded-xl shadow-md p-8 mb-8" data-animate="slide-up">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Technology Stack</h2>
         
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6" data-animate-child>
             <div class="text-center">
                 <div class="bg-blue-50 rounded-lg p-4 mb-3">
                     <svg class="w-12 h-12 mx-auto text-blue-600" fill="currentColor" viewBox="0 0 24 24">
@@ -111,7 +111,7 @@
     </div>
 
     <!-- Model Information -->
-    <div class="bg-white rounded-xl shadow-md p-8 mb-8">
+    <div class="bg-white rounded-xl shadow-md p-8 mb-8" data-animate="fade">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">Model Information</h2>
         
         <div class="space-y-4">
@@ -142,10 +142,10 @@
     </div>
 
     <!-- FAQ Section -->
-    <div class="bg-white rounded-xl shadow-md p-8 mb-8">
+    <div class="bg-white rounded-xl shadow-md p-8 mb-8" data-animate="slide-up">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Frequently Asked Questions</h2>
         
-        <div class="space-y-6">
+        <div class="space-y-6" data-animate-child>
             <div>
                 <h3 class="text-lg font-bold text-gray-800 mb-2">How accurate is the risk prediction?</h3>
                 <p class="text-gray-600">
@@ -188,7 +188,7 @@
     </div>
 
     <!-- Credits & Contact -->
-    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-8 text-white text-center">
+    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-8 text-white text-center animated-gradient" data-animate="bounce-in">
         <h2 class="text-2xl font-bold mb-4">Built with ❤️ for Education</h2>
         <p class="text-lg mb-6">
             This project demonstrates the power of AI in education, combining machine learning, 
@@ -238,5 +238,14 @@
         auth.signOut().then(() => window.location.href = '/login');
     });
 })();
+</script>
+
+<script type="module" nonce="{{ csp_nonce() }}">
+import { initScrollAnimations } from '/static/js/animations.js';
+
+// Initialize animations on page load
+document.addEventListener('DOMContentLoaded', () => {
+    initScrollAnimations();
+});
 </script>
 {% endblock %}
