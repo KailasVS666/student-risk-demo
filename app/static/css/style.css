@@ -518,6 +518,69 @@ textarea {
     padding: 16px 24px;
 }
 
+/* --- Typography Utilities --- */
+.text-primary { color: var(--text-primary); }
+.text-muted { color: var(--text-muted); }
+.text-accent { color: var(--accent-2); }
+
+/* --- Neo Panels & Dashboard Cards --- */
+.stat-card {
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.stat-label {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    letter-spacing: 0.01em;
+    margin-bottom: 6px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent-2);
+    text-shadow: 0 0 18px rgba(124, 248, 255, 0.35);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(145deg, rgba(124, 248, 255, 0.12), rgba(94, 242, 197, 0.08));
+    border: 1px solid rgba(124, 248, 255, 0.24);
+    color: var(--accent-2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.stat-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(124, 248, 255, 0.14);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.quick-panel {
+    padding: 24px;
+    background: radial-gradient(120% 120% at 10% 10%, rgba(124, 248, 255, 0.14), transparent 35%),
+                linear-gradient(135deg, rgba(14, 23, 42, 0.95), rgba(8, 14, 26, 0.98));
+    border: 1px solid rgba(124, 248, 255, 0.18);
+    box-shadow: 0 18px 50px rgba(6, 16, 31, 0.55);
+}
+
+.pill.risk-low { border-color: rgba(94, 242, 197, 0.35); color: #a5ffd6; }
+.pill.risk-medium { border-color: rgba(251, 191, 36, 0.35); color: #fde68a; background: rgba(251, 191, 36, 0.12); }
+.pill.risk-high { border-color: rgba(248, 113, 113, 0.35); color: #fecdd3; background: rgba(248, 113, 113, 0.12); }
+
 .action-bar__inner {
     display: flex;
     justify-content: space-between;
