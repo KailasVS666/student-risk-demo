@@ -41,9 +41,14 @@ main_bp = Blueprint('main', __name__)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CWD = os.getcwd()
 
+# Module-level logger for route utilities (used before app factory runs)
+logger = logging.getLogger(__name__)
+
 # Try multiple paths for models (for local dev and Render)
 def _find_model_path(filename):
     """Find model file in multiple locations"""
+    # Ensure logger exists even if module-level init fails
+    _log = logger if 'logger' in globals() else logging.getLogger(__name__)
     search_paths = [
         os.path.join(BASE_DIR, filename),  # app/../filename
         os.path.join(CWD, filename),        # current working directory
@@ -51,9 +56,9 @@ def _find_model_path(filename):
     ]
     for path in search_paths:
         if os.path.exists(path):
-            logger.info(f"Found {filename} at: {path}")
+            _log.info(f"Found {filename} at: {path}")
             return path
-    logger.error(f"Model file {filename} not found in any search path: {search_paths}")
+    _log.error(f"Model file {filename} not found in any search path: {search_paths}")
     return os.path.join(BASE_DIR, filename)  # Return default (will fail gracefully)
 
 MODEL_PATH = _find_model_path('early_warning_model_pipeline_tuned.joblib')
@@ -64,7 +69,6 @@ LABEL_ENCODER_PATH = _find_model_path('label_encoder.joblib')
 pipeline = None
 risk_explainer = None
 label_encoder = None
-logger = logging.getLogger(__name__)
 
 try:
     pipeline = joblib.load(MODEL_PATH)
