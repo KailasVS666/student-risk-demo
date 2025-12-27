@@ -236,6 +236,55 @@ textarea {
     background: rgba(255, 255, 255, 0.05);
 }
 
+/* --- Footer (Neo-Glow) --- */
+.footer-neo {
+    background: linear-gradient(160deg, rgba(14, 23, 42, 0.95), rgba(8, 14, 26, 0.98));
+    border-top: 1px solid rgba(124, 248, 255, 0.14);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.45);
+    color: var(--text-primary);
+}
+
+.footer-heading {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-2);
+    letter-spacing: 0.02em;
+}
+
+.footer-link {
+    color: var(--text-muted);
+    transition: color 160ms ease, text-shadow 160ms ease;
+}
+.footer-link:hover {
+    color: var(--accent-2);
+    text-shadow: 0 0 10px rgba(124, 248, 255, 0.35);
+}
+
+.footer-tech {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pill-tech {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    background: rgba(124, 248, 255, 0.08);
+    border: 1px solid rgba(124, 248, 255, 0.18);
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+.pill-tech:hover {
+    transform: translateY(-1px);
+    border-color: rgba(124, 248, 255, 0.35);
+    box-shadow: 0 10px 28px rgba(124, 248, 255, 0.18);
+}
+
+.footer-bar {
+    border-top: 1px solid var(--line-soft);
+    color: var(--text-muted);
+}
+
 /* --- Section Header Style --- */
 .section-header {
     border-bottom: 1px solid var(--line-soft);
