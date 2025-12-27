@@ -9,9 +9,10 @@ import APP_CONFIG from './config.js';
  * Initializes theme based on saved preference.
  */
 export function initTheme() {
-  const savedTheme = localStorage.getItem(APP_CONFIG.THEME_KEY) || 'light';
-  applyTheme(savedTheme);
-  updateThemeIcon(savedTheme);
+  // Force dark theme for single-theme experience
+  localStorage.setItem(APP_CONFIG.THEME_KEY, 'dark');
+  applyTheme('dark');
+  updateThemeIcon('dark');
 }
 
 /**
@@ -51,12 +52,10 @@ function updateThemeIcon(theme) {
  * Toggles between light and dark themes.
  */
 export function toggleTheme() {
-  const currentTheme = localStorage.getItem(APP_CONFIG.THEME_KEY) || 'light';
-  const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-  
-  localStorage.setItem(APP_CONFIG.THEME_KEY, newTheme);
-  applyTheme(newTheme);
-  updateThemeIcon(newTheme);
+  // Dark-only mode: no toggle behavior
+  localStorage.setItem(APP_CONFIG.THEME_KEY, 'dark');
+  applyTheme('dark');
+  updateThemeIcon('dark');
 }
 
 /**
@@ -65,14 +64,10 @@ export function toggleTheme() {
 export function setupThemeToggle() {
   const themeToggle = document.getElementById('themeToggle');
   if (themeToggle) {
-    // Use arrow function to preserve context
-    themeToggle.addEventListener('click', (e) => {
-      e.preventDefault();
-      toggleTheme();
-    });
-    // Mark that this button has been handled by theme.js
-    themeToggle.classList.add('theme-handler-attached');
-    console.log('Theme toggle handler attached by theme.js');
+    // Hide or disable the toggle since only dark mode is supported now
+    themeToggle.setAttribute('aria-hidden', 'true');
+    themeToggle.setAttribute('tabindex', '-1');
+    themeToggle.style.display = 'none';
   } else {
     console.warn('Theme toggle button not found');
   }

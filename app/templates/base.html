@@ -23,11 +23,9 @@
     
     <!-- Dark Mode Script (must run before body renders) -->
     <script nonce="{{ csp_nonce() }}">
-        // Apply saved theme immediately to prevent flash
-        const savedTheme = localStorage.getItem('student_assessment_theme') || 'light';
-        if (savedTheme === 'dark') {
-            document.documentElement.classList.add('dark');
-        }
+        // Force dark theme immediately to prevent flash
+        document.documentElement.classList.add('dark');
+        try { localStorage.setItem('student_assessment_theme', 'dark'); } catch (e) {}
     </script>
     
     <script nonce="{{ csp_nonce() }}">
