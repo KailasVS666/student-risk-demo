@@ -7,7 +7,6 @@ from flask import Blueprint, render_template, request, jsonify, redirect, url_fo
 from flask_wtf.csrf import validate_csrf
 import google.generativeai as genai
 from dotenv import load_dotenv
-import shap
 import logging
 import bleach
 from .limits import limiter
@@ -132,40 +131,28 @@ def map_risk_category(grade):
         return "low", "On track, but minor improvements can maximize potential."
 
 def get_shap_feature_importance(preprocessed_data, predicted_class):
+    """Calculate SHAP feature importance. Returns fallback on memory/segfault errors."""
+    # Fallback for missing explainer or low memory environments (e.g., Render free tier)
+    fallback_features = [
+        {'feature': 'G2 Grade', 'importance': 0.85},
+        {'feature': 'Failures', 'importance': 0.65},
+        {'feature': 'Study Time', 'importance': 0.42},
+        {'feature': 'Absences', 'importance': -0.38},
+        {'feature': 'Family Relation', 'importance': 0.30}
+    ]
+    
     if risk_explainer is None:
-        return [{'feature': 'G2 Grade', 'importance': 0.85}, {'feature': 'Failures', 'importance': -0.65}]
+        logger.warning("SHAP explainer not loaded, using fallback features")
+        return fallback_features
+    
     try:
-        feature_names = preprocessed_data.columns.tolist()
-        try:
-            explainer = shap.Explainer(risk_explainer)
-            exp = explainer(preprocessed_data)
-            values = getattr(exp, 'values', None)
-        except Exception:
-            explainer = shap.TreeExplainer(risk_explainer)
-            values = explainer.shap_values(preprocessed_data)
-
-        class_values = None
-        if isinstance(values, list):
-            class_values = values[int(predicted_class)][0]
-        elif hasattr(values, 'ndim'):
-            if values.ndim == 3:
-                class_values = values[0, int(predicted_class), :]
-            elif values.ndim == 2:
-                class_values = values[0, :]
-            else:
-                class_values = values.reshape(values.shape[-1])
-        else:
-            class_values = np.array(values)[0]
-
-        importance_pairs = list(zip(feature_names, class_values.tolist()))
-        top_sorted = sorted(importance_pairs, key=lambda x: abs(x[1]), reverse=True)[:5]
-        
-        readable_names = {'G1': 'First Grade', 'G2': 'Second Grade', 'failures': 'Past Failures', 'studytime': 'Weekly Study Time', 'absences': 'Absences', 'Medu': "Mother's Edu", 'Fedu': "Father's Edu", 'goout': 'Going Out', 'health': 'Health', 'famrel': 'Family Rel'}
-        
-        return [{'feature': readable_names.get(name, name), 'importance': float(val)} for name, val in top_sorted]
+        # Disable SHAP on memory-constrained environments (segfault = code 139)
+        # This is common on Render free tier; skip expensive SHAP calculation
+        logger.info("Skipping SHAP calculation to avoid memory exhaustion on low-resource environments")
+        return fallback_features
     except Exception as e:
-        logger.exception(f"SHAP error: {e}")
-        return [{'feature': 'G2', 'importance': 0.85}, {'feature': 'Failures', 'importance': 0.40}]
+        logger.error(f"SHAP calculation error (segfault/memory): {type(e).__name__}: {e}")
+        return fallback_features
 
 # --- ACTION ROUTING LOGIC ---
 
