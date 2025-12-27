@@ -6,30 +6,30 @@
 <div class="max-w-7xl mx-auto">
     <!-- Page Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">Assessment History</h1>
-        <p class="text-gray-600">View and manage all your past student assessments</p>
+        <h1 class="text-3xl font-bold text-primary mb-2">Assessment History</h1>
+        <p class="text-muted">View and manage all your past student assessments</p>
     </div>
 
     <!-- Filters and Search -->
-    <div class="card-soft panel-spacing mb-6">
+    <div class="neo-panel panel-spacing mb-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Search -->
             <div class="md:col-span-2">
-                <label for="searchHistory" class="block text-sm font-medium text-gray-700 mb-2">Search Profiles</label>
+                <label for="searchHistory" class="block text-sm font-semibold text-primary mb-2">Search Profiles</label>
                 <input 
                     type="search" 
                     id="searchHistory" 
                     placeholder="Search by profile name..."
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    class="input-soft"
                 />
             </div>
 
             <!-- Risk Level Filter -->
             <div>
-                <label for="filterRisk" class="block text-sm font-medium text-gray-700 mb-2">Filter by Risk</label>
+                <label for="filterRisk" class="block text-sm font-semibold text-primary mb-2">Filter by Risk</label>
                 <select 
                     id="filterRisk" 
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    class="input-soft"
                 >
                     <option value="">All Risk Levels</option>
                     <option value="High">High Risk</option>
@@ -40,14 +40,14 @@
         </div>
 
         <!-- Sort Options and Export -->
-        <div class="mt-4 flex items-center justify-between">
-            <div class="flex items-center space-x-4">
-                <span class="text-sm text-gray-600">Sort by:</span>
+        <div class="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div class="flex items-center flex-wrap gap-2">
+                <span class="text-sm text-muted">Sort by:</span>
                 <button id="sortNewest" class="sort-btn active">Newest First</button>
                 <button id="sortOldest" class="sort-btn">Oldest First</button>
                 <button id="sortName" class="sort-btn">Name (A-Z)</button>
             </div>
-            <button id="exportCsvBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center space-x-2">
+            <button id="exportCsvBtn" class="btn-primary px-4 py-2 rounded-lg font-bold flex items-center gap-2">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
@@ -57,19 +57,19 @@
     </div>
 
     <!-- Loading State -->
-    <div id="historyLoading" class="text-center py-12 card-soft">
+    <div id="historyLoading" class="text-center py-12 neo-panel panel-spacing">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-        <p class="mt-4 text-gray-500">Loading assessment history...</p>
+        <p class="mt-4 text-muted">Loading assessment history...</p>
     </div>
 
     <!-- Empty State -->
-    <div id="historyEmpty" class="text-center py-16 card-soft hidden">
+    <div id="historyEmpty" class="text-center py-16 neo-panel panel-spacing hidden">
         <svg class="mx-auto h-20 w-20 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
-        <h3 class="text-xl font-medium text-gray-700 mb-2">No assessments found</h3>
-        <p class="text-gray-500 mb-6">You haven't created any student assessments yet</p>
-        <a href="/assessment" class="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors">
+        <h3 class="text-xl font-semibold text-primary mb-2">No assessments found</h3>
+        <p class="text-muted mb-6">You haven't created any student assessments yet</p>
+        <a href="/assessment" class="btn-primary inline-flex px-6 py-3 rounded-lg font-semibold">
             Create Your First Assessment
         </a>
     </div>
@@ -81,29 +81,21 @@
 
     <!-- Stats Summary -->
     <div id="historyStats" class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 hidden">
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <h3 class="text-sm font-medium text-gray-500 mb-2">Total Assessments</h3>
-            <p class="text-3xl font-bold text-indigo-600" id="statTotal">0</p>
+        <div class="neo-panel stat-card">
+            <h3 class="stat-label">Total Assessments</h3>
+            <p class="stat-value" id="statTotal">0</p>
         </div>
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <h3 class="text-sm font-medium text-gray-500 mb-2">High Risk</h3>
-            <p class="text-3xl font-bold text-red-600" id="statHigh">0</p>
+        <div class="neo-panel stat-card">
+            <h3 class="stat-label">High Risk</h3>
+            <p class="stat-value text-red-300" id="statHigh">0</p>
         </div>
-        <div class="bg-white rounded-xl shadow-md p-6">
-            <h3 class="text-sm font-medium text-gray-500 mb-2">Low Risk</h3>
-            <p class="text-3xl font-bold text-green-600" id="statLow">0</p>
+        <div class="neo-panel stat-card">
+            <h3 class="stat-label">Low Risk</h3>
+            <p class="stat-value text-green-300" id="statLow">0</p>
         </div>
     </div>
 </div>
 
-<style>
-    .sort-btn {
-        @apply px-3 py-1 text-sm text-gray-600 hover:text-indigo-600 transition-colors;
-    }
-    .sort-btn.active {
-        @apply text-indigo-600 font-semibold border-b-2 border-indigo-600;
-    }
-</style>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -228,49 +220,47 @@ import { showToast } from '/static/js/ui-utils.js';
 
     function createHistoryCard(profile) {
         const card = document.createElement('div');
-        card.className = 'card-soft panel-spacing hover:shadow-lg transition-all duration-200';
+        card.className = 'neo-panel panel-spacing history-card hover-lift';
 
         const g1 = profile.G1 || 0;
         const g2 = profile.G2 || 0;
         const avgGrade = (g1 + g2) / 2;
 
-        let riskClass = 'bg-green-100 text-green-800';
+        let riskClass = 'pill risk-low';
         let riskText = 'Low Risk';
         if (avgGrade < 10) {
-            riskClass = 'bg-red-100 text-red-800';
+            riskClass = 'pill risk-high';
             riskText = 'High Risk';
         } else if (avgGrade < 14) {
-            riskClass = 'bg-yellow-100 text-yellow-800';
+            riskClass = 'pill risk-medium';
             riskText = 'Medium Risk';
         }
 
         card.innerHTML = `
-            <div class="flex flex-col md:flex-row md:items-center justify-between">
-                <div class="flex-1 mb-4 md:mb-0">
-                    <h3 class="text-xl font-bold text-gray-800 mb-2">${profile.id}</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-primary mb-2">${profile.id}</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-muted">
                         <div>
-                            <span class="font-medium">Age:</span> ${profile.age || 'N/A'}
+                            <span class="font-semibold text-primary">Age:</span> ${profile.age || 'N/A'}
                         </div>
                         <div>
-                            <span class="font-medium">G1:</span> ${g1}
+                            <span class="font-semibold text-primary">G1:</span> ${g1}
                         </div>
                         <div>
-                            <span class="font-medium">G2:</span> ${g2}
+                            <span class="font-semibold text-primary">G2:</span> ${g2}
                         </div>
                         <div>
-                            <span class="font-medium">Failures:</span> ${profile.failures || 0}
+                            <span class="font-semibold text-primary">Failures:</span> ${profile.failures || 0}
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <span class="px-4 py-2 rounded-full text-sm font-semibold ${riskClass}">
-                        ${riskText}
-                    </span>
-                    <button data-action="view" data-profile="${profile.id}" class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors text-sm font-medium">
+                <div class="flex items-center flex-wrap gap-3">
+                    <span class="${riskClass}">${riskText}</span>
+                    <button data-action="view" data-profile="${profile.id}" class="btn-secondary px-4 py-2 rounded-lg text-sm font-semibold">
                         View Details
                     </button>
-                    <button data-action="delete" data-profile="${profile.id}" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium">
+                    <button data-action="delete" data-profile="${profile.id}" class="btn-danger-ghost px-4 py-2 rounded-lg text-sm font-semibold">
                         Delete
                     </button>
                 </div>

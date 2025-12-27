@@ -440,6 +440,47 @@ textarea {
     text-shadow: 0 0 8px rgba(124, 248, 255, 0.4);
 }
 
+/* --- History Page --- */
+.sort-btn {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    border-radius: 12px;
+    color: var(--text-muted);
+    border: 1px solid rgba(124, 248, 255, 0.14);
+    background: rgba(255, 255, 255, 0.02);
+    transition: color 150ms ease, border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.sort-btn:hover {
+    color: var(--accent-2);
+    border-color: rgba(124, 248, 255, 0.35);
+    background: rgba(124, 248, 255, 0.08);
+}
+
+.sort-btn.active {
+    color: var(--accent-2);
+    border-color: rgba(124, 248, 255, 0.5);
+    box-shadow: 0 8px 24px rgba(94, 242, 197, 0.25);
+}
+
+.history-card {
+    border: 1px solid rgba(124, 248, 255, 0.12);
+    background: linear-gradient(160deg, rgba(12, 20, 36, 0.92), rgba(7, 12, 24, 0.95));
+}
+
+.btn-danger-ghost {
+    background: rgba(248, 113, 113, 0.12);
+    color: #fecdd3;
+    border: 1px solid rgba(248, 113, 113, 0.35);
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.btn-danger-ghost:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 32px rgba(248, 113, 113, 0.35);
+    border-color: rgba(248, 113, 113, 0.6);
+}
+
 /* Progress connecting lines */
 .progress-line {
     flex: 1;
