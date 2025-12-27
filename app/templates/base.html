@@ -356,6 +356,9 @@
         })();
     </script>
 
+    <!-- Global Theme Module (ensures toggle works on all pages) -->
+    <script type="module" src="{{ url_for('static', filename='js/theme.js') }}"></script>
+
     {% block extra_scripts %}{% endblock %}
 
 </body>

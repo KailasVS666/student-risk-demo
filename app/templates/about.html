@@ -208,8 +208,9 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function() {
+    const FIREBASE_CONFIG = window.FIREBASE_CONFIG || {};
     if (typeof firebase === 'undefined' || !FIREBASE_CONFIG || !FIREBASE_CONFIG.projectId) {
         console.error("Firebase not configured");
         return;
@@ -222,16 +223,18 @@
 
     auth.onAuthStateChanged(user => {
         if (user) {
-            document.getElementById('user-email-nav').textContent = user.email;
+            const emailNav = document.getElementById('user-email-nav');
+            if (emailNav) emailNav.textContent = user.email;
         }
     });
 
     // Logout handlers
-    document.getElementById('logoutBtn').addEventListener('click', () => {
+    const logoutBtn = document.getElementById('logoutBtn');
+    const logoutBtnMobile = document.getElementById('logoutBtnMobile');
+    if (logoutBtn) logoutBtn.addEventListener('click', () => {
         auth.signOut().then(() => window.location.href = '/login');
     });
-    
-    document.getElementById('logoutBtnMobile').addEventListener('click', () => {
+    if (logoutBtnMobile) logoutBtnMobile.addEventListener('click', () => {
         auth.signOut().then(() => window.location.href = '/login');
     });
 })();

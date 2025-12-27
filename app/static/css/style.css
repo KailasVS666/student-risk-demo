@@ -30,6 +30,39 @@ body {
     color: var(--text-primary);
 }
 
+/* --- Dark Mode Utility Overrides for Tailwind Defaults --- */
+.dark .bg-white {
+    background: linear-gradient(145deg, rgba(17, 25, 45, 0.96), rgba(12, 19, 34, 0.96)) !important;
+    border: 1px solid rgba(124, 248, 255, 0.08) !important;
+    color: var(--text-primary) !important;
+}
+.dark .text-gray-800,
+.dark .text-gray-700 {
+    color: var(--text-primary) !important;
+}
+.dark .text-gray-600,
+.dark .text-gray-500 {
+    color: var(--text-muted) !important;
+}
+.dark .border-gray-200,
+.dark .border-gray-300 {
+    border-color: var(--line-soft) !important;
+}
+.dark .bg-indigo-100,
+.dark .bg-purple-100,
+.dark .bg-green-100,
+.dark .bg-red-100,
+.dark .bg-yellow-100,
+.dark .bg-blue-50,
+.dark .bg-purple-50,
+.dark .bg-orange-50,
+.dark .bg-green-50,
+.dark .bg-gray-100 {
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(166, 181, 214, 0.25) !important;
+    color: var(--text-primary) !important;
+}
+
 /* --- Button Styles --- */
 .btn-primary {
     background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent) 100%);
