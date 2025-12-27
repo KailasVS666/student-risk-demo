@@ -70,7 +70,9 @@ export function setupThemeToggle() {
       e.preventDefault();
       toggleTheme();
     });
-    console.log('Theme toggle handler attached');
+    // Mark that this button has been handled by theme.js
+    themeToggle.classList.add('theme-handler-attached');
+    console.log('Theme toggle handler attached by theme.js');
   } else {
     console.warn('Theme toggle button not found');
   }
