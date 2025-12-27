@@ -218,3 +218,50 @@ export default {
   copyToClipboard,
   safeGetElement
 };
+
+/**
+ * Initializes micro-interactions: button ripple, input focus pulse, hover lift.
+ */
+export function initMicroInteractions() {
+  try {
+    // 1) Button Ripple Effect
+    const rippleButtons = document.querySelectorAll('.btn-primary, .btn-secondary, .btn-icon');
+    rippleButtons.forEach((btn) => {
+      btn.classList.add('ripple-container');
+      btn.addEventListener('click', (e) => {
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple';
+        ripple.style.width = ripple.style.height = `${size}px`;
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+        btn.appendChild(ripple);
+        ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
+      });
+    });
+
+    // 2) Input Focus Pulse
+    const focusables = document.querySelectorAll('input, select, textarea');
+    focusables.forEach((el) => {
+      el.addEventListener('focus', () => {
+        el.classList.add('focus-animated');
+        const handler = () => el.classList.remove('focus-animated');
+        el.addEventListener('animationend', handler, { once: true });
+      });
+      el.addEventListener('blur', () => {
+        el.classList.remove('focus-animated');
+      });
+    });
+
+    // 3) Hover Lift utility applied to key surfaces
+    document.querySelectorAll('.neo-panel, .card-soft').forEach((el) => {
+      el.classList.add('hover-lift');
+    });
+  } catch (err) {
+    console.warn('Micro-interactions init failed:', err);
+  }
+}
+

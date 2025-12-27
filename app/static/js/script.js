@@ -18,6 +18,7 @@ import {
   copyToClipboard,
   safeGetElement
 } from './ui-utils.js';
+import { initMicroInteractions } from './ui-utils.js';
 
 import {
   gatherFormData,
@@ -175,6 +176,9 @@ async function initializeApp() {
 
     // 9. Setup Unsaved Changes Guard
     setupUnsavedChangesGuard();
+
+    // 10. Initialize micro-interactions (ripples, focus pulses, hover lifts)
+    initMicroInteractions();
   } catch (error) {
     handleError(error, { context: 'Application Initialization' });
   }
