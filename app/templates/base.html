@@ -251,21 +251,24 @@
             }, 3000);
         }
 
-        // Theme toggle is now handled by theme.js module (imported in assessment.html, etc.)
-        // This removes duplicate theme logic that was conflicting
-        // Fallback: if theme.js hasn't loaded yet, use a basic toggle
+        // Theme toggle fallback for pages that don't import theme.js module
         const themeToggleBtn = document.getElementById('themeToggle');
-        if (themeToggleBtn && !themeToggleBtn.hasListener) {
-            themeToggleBtn.addEventListener('click', function() {
+        if (themeToggleBtn) {
+            const handleThemeToggle = (e) => {
+                e.preventDefault();
                 const key = 'student_assessment_theme';
                 const current = localStorage.getItem(key) || 'light';
                 const next = current === 'light' ? 'dark' : 'light';
                 localStorage.setItem(key, next);
+                
+                // Apply theme to html element
+                const htmlEl = document.documentElement;
                 if (next === 'dark') {
-                    document.documentElement.classList.add('dark');
+                    htmlEl.classList.add('dark');
                 } else {
-                    document.documentElement.classList.remove('dark');
+                    htmlEl.classList.remove('dark');
                 }
+                
                 // Update icons
                 const lightIcon = document.getElementById('themeIconLight');
                 const darkIcon = document.getElementById('themeIconDark');
@@ -278,8 +281,15 @@
                         darkIcon.classList.remove('hidden');
                     }
                 }
-            });
-            themeToggleBtn.hasListener = true;
+                console.log('Theme toggled to:', next);
+            };
+            
+            // Don't add if theme.js already added a handler
+            if (!themeToggleBtn.classList.contains('theme-handler-attached')) {
+                themeToggleBtn.addEventListener('click', handleThemeToggle);
+                themeToggleBtn.classList.add('theme-handler-attached');
+                console.log('Theme toggle fallback handler attached');
+            }
         }
 
 

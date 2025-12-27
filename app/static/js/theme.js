@@ -63,7 +63,14 @@ export function toggleTheme() {
 export function setupThemeToggle() {
   const themeToggle = document.getElementById('themeToggle');
   if (themeToggle) {
-    themeToggle.addEventListener('click', toggleTheme);
+    // Use arrow function to preserve context
+    themeToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      toggleTheme();
+    });
+    console.log('Theme toggle handler attached');
+  } else {
+    console.warn('Theme toggle button not found');
   }
 }
 
