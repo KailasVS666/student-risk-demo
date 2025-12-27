@@ -195,9 +195,11 @@ web: cd student-risk-app && gunicorn run:app
 4. Configure settings:
    - **Name**: `student-risk-mentor`
    - **Environment**: Python 3
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `cd student-risk-app && gunicorn run:app --bind 0.0.0.0:$PORT`
+   - **Build Command**: `bash build.sh`
+   - **Start Command**: `gunicorn run:app --bind 0.0.0.0:$PORT`
    - **Plan**: Free
+
+> **⚠️ Important**: The `build.sh` script will automatically train the ML models on first deployment. This may take 2-3 minutes. Subsequent deployments will skip model training if the files already exist.
 
 ### Step 3: Add Environment Variables
 In Render dashboard, go to "Environment" tab and add:
@@ -217,13 +219,34 @@ SECRET_KEY=your_secret_key
 
 ### Step 4: Deploy
 1. Click "Create Web Service"
-2. Render will automatically build and deploy
-3. Wait 5-10 minutes for first deployment
-4. Access your app at: `https://student-risk-mentor.onrender.com`
+2. Render will automatically run `build.sh` which:
+   - Installs Python and Node dependencies
+   - Trains the ML models (first deploy only, ~2-3 minutes)
+   - Builds the Tailwind CSS
+   - Starts the Flask app
+3. Watch the deployment logs (should see "Models trained successfully" on first deploy)
+4. Wait 10-15 minutes for first deployment (includes model training time)
+5. Access your app at: `https://student-risk-mentor.onrender.com`
 
 ### Step 5: Auto-Deploy Setup
 - Render automatically deploys on Git push to main branch
 - Configure deploy hooks in Render dashboard if needed
+
+### Troubleshooting Render Deployments
+
+#### Issue: 502 Bad Gateway on `/api/predict`
+**Cause**: Models failed to load or training timed out
+**Solution**: 
+1. Check Render deployment logs for training errors
+2. Ensure CSV files (`student-mat.csv`, `student-por.csv`) are in repo
+3. If training times out, pre-train models locally and commit them (track with Git LFS)
+
+#### Issue: Application won't start
+**Cause**: Missing environment variables
+**Solution**:
+1. Check Render dashboard for incomplete env vars
+2. Ensure all Firebase and Gemini API keys are set
+3. Redeploy after adding missing variables
 
 ---
 
