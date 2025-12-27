@@ -20,14 +20,11 @@ export function initTheme() {
  */
 export function applyTheme(theme) {
   const htmlEl = document.documentElement;
-  const bodyEl = document.body;
   
   if (theme === 'dark') {
     htmlEl.classList.add('dark');
-    bodyEl.classList.add('dark:bg-gray-900');
   } else {
     htmlEl.classList.remove('dark');
-    bodyEl.classList.remove('dark:bg-gray-900');
   }
 }
 
