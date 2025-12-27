@@ -325,15 +325,15 @@
         });
 
         // Firebase config placeholder (will be injected by each page)
-        const FIREBASE_CONFIG = {{ firebase_config|tojson|safe if firebase_config else '{}' }};
+        window.FIREBASE_CONFIG = {{ firebase_config|tojson|safe if firebase_config else '{}' }};
 
         // Initialize Firebase (once) and wire basic auth UX: nav email, logout, verify banner
         (function() {
-            if (typeof firebase === 'undefined' || !FIREBASE_CONFIG || !FIREBASE_CONFIG.projectId) {
+            if (typeof firebase === 'undefined' || !window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.projectId) {
                 return;
             }
             if (!firebase.apps.length) {
-                firebase.initializeApp(FIREBASE_CONFIG);
+                firebase.initializeApp(window.FIREBASE_CONFIG);
             }
             const auth = firebase.auth();
 
