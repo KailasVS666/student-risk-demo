@@ -86,43 +86,70 @@ export function renderAdvice(adviceText) {
     return;
   }
 
-  let htmlContent = adviceText;
+  const lines = adviceText.split('\n');
+  const htmlParts = [];
+  let inList = false;
 
-  // Convert markdown-style headers (### text) to <h3>
-  htmlContent = htmlContent.replace(/###\s+(.*?)(?=\n|$)/g, '<h3>$1</h3>');
+  const closeList = () => {
+    if (inList) {
+      htmlParts.push('</ul>');
+      inList = false;
+    }
+  };
 
-  // Convert bold (**text**) to <strong>
-  htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  lines.forEach(rawLine => {
+    const line = rawLine.trim();
 
-  // Convert italic (*text*) to <em>
-  htmlContent = htmlContent.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    if (!line) {
+      closeList();
+      return;
+    }
 
-  // Convert markdown lists to HTML
-  htmlContent = htmlContent
-    .replace(/^\s*\*\s+/gm, '<li>')
-    .replace(/^\s*-\s+/gm, '<li>');
+    const headingMatch = line.match(/^#{2,3}\s+(.*)/);
+    if (headingMatch) {
+      closeList();
+      htmlParts.push(`<h3>${formatInline(headingMatch[1])}</h3>`);
+      return;
+    }
 
-  // Convert double newlines to paragraphs
-  htmlContent = htmlContent
-    .split(/\n\n+/)
-    .map(para => {
-      if (para.includes('<h') || para.includes('<li')) {
-        return para;
+    if (line.startsWith('>')) {
+      closeList();
+      const noteText = line.replace(/^>\s?/, '');
+      htmlParts.push(`<p class="advice-note">${formatInline(noteText)}</p>`);
+      return;
+    }
+
+    const bulletMatch = line.match(/^[-*]\s+(.*)/);
+    if (bulletMatch) {
+      if (!inList) {
+        htmlParts.push('<ul>');
+        inList = true;
       }
-      return `<p>${para.replace(/\n/g, '<br>')}</p>`;
-    })
-    .join('');
+      htmlParts.push(`<li>${formatInline(bulletMatch[1])}</li>`);
+      return;
+    }
 
-  // Wrap list items in <ul>
-  if (htmlContent.includes('<li>')) {
-    htmlContent = htmlContent.replace(/<li>/g, '<li>').replace(/(<li>.*?)<\/p>/gs, '$1</li>');
-    htmlContent = htmlContent.replace(/(<li>)/g, '<ul><li>').replace(/(<\/li>)(?!.*<li>)/g, '$1</ul>');
-  }
+    closeList();
+    htmlParts.push(`<p>${formatInline(line)}</p>`);
+  });
 
-  outputDiv.innerHTML = htmlContent;
+  closeList();
+
+  outputDiv.innerHTML = htmlParts.join('');
 
   // Sanitization: remove any script tags or dangerous attributes
   sanitizeHTML(outputDiv);
+}
+
+function formatInline(text) {
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  return escaped
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>');
 }
 
 /**

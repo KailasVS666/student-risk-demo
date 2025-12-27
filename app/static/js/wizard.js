@@ -22,9 +22,10 @@ export class WizardManager {
     this.formSteps = document.querySelectorAll('.form-step');
     this.progressSteps = document.querySelectorAll('.progress-step');
     this.progressBarContainer = document.querySelector('.progress-bar-container');
-    this.nextBtn = document.getElementById('nextBtn');
-    this.prevBtn = document.getElementById('prevBtn');
-    this.generateAdviceBtn = document.getElementById('generateAdviceBtn');
+    // Multiple buttons share these ids across sticky bar + inline fallback, so bind to all
+    this.nextButtons = document.querySelectorAll('#nextBtn');
+    this.prevButtons = document.querySelectorAll('#prevBtn');
+    this.generateAdviceButtons = document.querySelectorAll('#generateAdviceBtn');
     this.actionStepLabel = safeGetElement('actionStepLabel', false);
     this.actionStepTitle = safeGetElement('actionStepTitle', false);
 
@@ -36,12 +37,12 @@ export class WizardManager {
    * @private
    */
   init() {
-    if (this.nextBtn) {
-      this.nextBtn.addEventListener('click', () => this.goToNextStep());
+    if (this.nextButtons?.length) {
+      this.nextButtons.forEach(btn => btn.addEventListener('click', () => this.goToNextStep()));
     }
 
-    if (this.prevBtn) {
-      this.prevBtn.addEventListener('click', () => this.goToPreviousStep());
+    if (this.prevButtons?.length) {
+      this.prevButtons.forEach(btn => btn.addEventListener('click', () => this.goToPreviousStep()));
     }
 
     // Initialize range value displays
@@ -165,28 +166,26 @@ export class WizardManager {
    * @private
    */
   updateNavigationButtons() {
-    // Previous button
-    if (this.prevBtn) {
-      this.prevBtn.style.display = this.currentStep > 0 ? 'inline-flex' : 'none';
+    // Previous buttons
+    if (this.prevButtons?.length) {
+      this.prevButtons.forEach(btn => {
+        btn.style.display = this.currentStep > 0 ? 'inline-flex' : 'none';
+      });
     }
 
-    // Next button and Generate Advice button
-    if (this.currentStep === this.totalSteps - 1) {
-      // Last step: hide next, enable generate
-      if (this.nextBtn) {
-        this.nextBtn.style.display = 'none';
-      }
-      if (this.generateAdviceBtn) {
-        this.generateAdviceBtn.disabled = false;
-      }
-    } else {
-      // Earlier steps: show next, disable generate
-      if (this.nextBtn) {
-        this.nextBtn.style.display = 'inline-flex';
-      }
-      if (this.generateAdviceBtn) {
-        this.generateAdviceBtn.disabled = true;
-      }
+    // Next buttons and Generate Advice buttons
+    const onLastStep = this.currentStep === this.totalSteps - 1;
+
+    if (this.nextButtons?.length) {
+      this.nextButtons.forEach(btn => {
+        btn.style.display = onLastStep ? 'none' : 'inline-flex';
+      });
+    }
+
+    if (this.generateAdviceButtons?.length) {
+      this.generateAdviceButtons.forEach(btn => {
+        btn.disabled = !onLastStep;
+      });
     }
 
     this.updateActionBarText();

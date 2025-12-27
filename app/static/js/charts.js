@@ -15,6 +15,20 @@ let probaChartInstance = null;
 let ChartJS = null;
 let chartLibraryLoaded = false;
 
+function getChartTheme() {
+  const isDark = document.documentElement.classList.contains('dark');
+  return {
+    isDark,
+    text: isDark ? '#e6ecff' : '#1f2937',
+    subtle: isDark ? '#a7b5d6' : '#6b7280',
+    grid: isDark ? 'rgba(124, 248, 255, 0.08)' : 'rgba(0,0,0,0.05)',
+    tooltipBg: isDark ? 'rgba(11, 18, 32, 0.95)' : '#ffffff',
+    tooltipBorder: isDark ? 'rgba(124, 248, 255, 0.25)' : '#e5e7eb',
+    accent: isDark ? '#7cf8ff' : '#4f46e5',
+    accentSecondary: isDark ? '#5ef2c5' : '#10b981'
+  };
+}
+
 /**
  * Lazily loads Chart.js library only when needed.
  * @returns {Promise<void>}
@@ -127,6 +141,8 @@ export async function renderExplanationChart(shapValues, showSensitive = false) 
     imp > 0 ? APP_CONFIG.CHARTS.EXPLANATION_POSITIVE_COLOR : APP_CONFIG.CHARTS.EXPLANATION_NEGATIVE_COLOR
   );
 
+  const theme = getChartTheme();
+
   const ctx = chartCanvas.getContext('2d');
   explanationChartInstance = new ChartJS(ctx, {
     type: 'bar',
@@ -151,13 +167,25 @@ export async function renderExplanationChart(shapValues, showSensitive = false) 
           beginAtZero: false,
           title: {
             display: true,
-            text: 'SHAP Value (Impact on Prediction)'
-          }
+            text: 'SHAP Value (Impact on Prediction)',
+            color: theme.text
+          },
+          ticks: { color: theme.text },
+          grid: { color: theme.grid }
+        },
+        y: {
+          ticks: { color: theme.text },
+          grid: { color: theme.grid }
         }
       },
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: theme.tooltipBg,
+          borderColor: theme.tooltipBorder,
+          borderWidth: 1,
+          titleColor: theme.text,
+          bodyColor: theme.text,
           callbacks: {
             title: (context) => context[0].label,
             label: (context) => {
@@ -216,6 +244,8 @@ export async function renderGradesChart(G1, G2, G3) {
   // Destroy previous instance
   destroyChart(gradesChartInstance);
 
+  const theme = getChartTheme();
+
   const ctx = chartCanvas.getContext('2d');
   gradesChartInstance = new ChartJS(ctx, {
     type: 'line',
@@ -243,13 +273,28 @@ export async function renderGradesChart(G1, G2, G3) {
           max: APP_CONFIG.CHARTS.GRADE_MAX,
           title: {
             display: true,
-            text: 'Grade (out of 20)'
-          }
+            text: 'Grade (out of 20)',
+            color: theme.text
+          },
+          ticks: { color: theme.text },
+          grid: { color: theme.grid }
+        },
+        x: {
+          ticks: { color: theme.text },
+          grid: { color: theme.grid }
         }
       },
       plugins: {
         legend: { display: false },
-        tooltip: { mode: 'index', intersect: false }
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: theme.tooltipBg,
+          borderColor: theme.tooltipBorder,
+          borderWidth: 1,
+          titleColor: theme.text,
+          bodyColor: theme.text
+        }
       }
     }
   });
@@ -286,6 +331,8 @@ export async function renderProbaChart(probMap) {
     return APP_CONFIG.RISK_COLORS.low;
   });
 
+  const theme = getChartTheme();
+
   const ctx = chartCanvas.getContext('2d');
   probaChartInstance = new ChartJS(ctx, {
     type: 'bar',
@@ -309,12 +356,22 @@ export async function renderProbaChart(probMap) {
         x: {
           beginAtZero: true,
           max: 100,
-          ticks: { callback: (value) => value + '%' }
+          ticks: { callback: (value) => value + '%', color: theme.text },
+          grid: { color: theme.grid }
+        },
+        y: {
+          ticks: { color: theme.text },
+          grid: { color: theme.grid }
         }
       },
       plugins: {
         legend: { display: false },
         tooltip: {
+          backgroundColor: theme.tooltipBg,
+          borderColor: theme.tooltipBorder,
+          borderWidth: 1,
+          titleColor: theme.text,
+          bodyColor: theme.text,
           callbacks: {
             label: (context) => `${context.parsed.x.toFixed(1)}%`
           }

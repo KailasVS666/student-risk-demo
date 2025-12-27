@@ -59,11 +59,15 @@ except Exception as e:
 
 # Initialize Gemini
 gemini_model = None
+USE_MOCK_MODE = os.getenv('USE_MOCK_MODE', 'false').lower() == 'true'
+
 try:
-    if GEMINI_API_KEY:
+    if GEMINI_API_KEY and not USE_MOCK_MODE:
         genai.configure(api_key=GEMINI_API_KEY)
-        gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+        gemini_model = genai.GenerativeModel('gemini-2.0-flash-lite')
         logger.info("Gemini model initialized successfully.")
+    elif USE_MOCK_MODE:
+        logger.info("Running in MOCK MODE - using demo advice")
     else:
         logger.warning("GEMINI_API_KEY not found.")
 except Exception as e:
@@ -144,6 +148,75 @@ def get_shap_feature_importance(preprocessed_data, predicted_class):
 
 # --- ACTION ROUTING LOGIC ---
 
+def generate_mock_advice(risk_category, predicted_g3, custom_prompt_text=''):
+    """Generate realistic mock advice for testing without hitting API."""
+    mock_advice_templates = {
+        'high': """
+### ⚡ Priority Actions
+- **Schedule immediate one-on-one counseling** with academic advisor within 24 hours
+- **Create a daily study schedule** with specific time blocks for each subject
+- **Join tutoring sessions** for subjects where grades are below 12/20
+- **Set up weekly check-ins** with teachers to monitor progress
+
+### 📚 Academic Plan
+- **Focus on foundational concepts** - review previous material before moving forward
+- **Break study sessions into 25-minute intervals** (Pomodoro technique) with 5-min breaks
+- **Practice active recall** - test yourself regularly instead of passive reading
+- **Form a study group** with peers who are performing well
+
+### 🧘 Personal Growth
+- **Improve sleep hygiene** - aim for 7-8 hours nightly to boost cognitive function
+- **Reduce social media time** by 50% and redirect to productive activities
+- **Practice stress management** through meditation or physical exercise
+- **Build a reward system** - celebrate small wins to maintain motivation
+""",
+        'medium': """
+### ⚡ Priority Actions
+- **Identify weak areas** through self-assessment and past exam analysis
+- **Increase study time by 2-3 hours per week** focusing on challenging subjects
+- **Attend office hours** to clarify doubts and get personalized guidance
+- **Review and improve note-taking methods** for better retention
+
+### 📚 Academic Plan
+- **Create weekly goals** with specific, measurable targets for each subject
+- **Use active learning techniques** - teach concepts to others or explain them aloud
+- **Complete practice problems** beyond homework to reinforce understanding
+- **Track your progress** with a study journal or app
+
+### 🧘 Personal Growth
+- **Balance academics with activities** - maintain hobbies to prevent burnout
+- **Build better time management** using planners or digital calendars
+- **Stay consistent** with study routines even on weekends
+- **Seek peer feedback** on your learning approach and adjust as needed
+""",
+        'low': """
+### ⚡ Priority Actions
+- **Maintain current momentum** - consistency is key to sustained success
+- **Challenge yourself** with advanced materials or enrichment activities
+- **Mentor struggling peers** to reinforce your own understanding
+- **Explore extracurricular opportunities** that align with your interests
+
+### 📚 Academic Plan
+- **Set stretch goals** to push beyond current performance levels
+- **Dive deeper into topics of interest** through independent projects or research
+- **Prepare for advanced coursework** by previewing upcoming material
+- **Optimize study efficiency** - focus on quality over quantity
+
+### 🧘 Personal Growth
+- **Develop leadership skills** by taking on group project leadership roles
+- **Build professional skills** through internships or volunteer work
+- **Cultivate growth mindset** - view challenges as opportunities
+- **Plan for the future** - research college/career paths aligned with strengths
+"""
+    }
+    
+    base_advice = mock_advice_templates.get(risk_category, mock_advice_templates['medium'])
+    
+    if custom_prompt_text:
+        base_advice = f"\n*Addressing your request: {custom_prompt_text[:100]}...*\n{base_advice}"
+    
+    return f"> **MOCK MODE - Demo Advice (Predicted Grade: {predicted_g3}/20)**\n{base_advice}"
+
 def get_mentoring_strategy(risk_category):
     strategies = {
         'high': {
@@ -168,7 +241,8 @@ def get_mentoring_strategy(risk_category):
     return strategies.get(risk_category.lower(), strategies['medium'])
 
 def generate_mentoring_advice(student_data, predicted_g3, risk_category, top_features):
-    if gemini_model is None:
+    # Allow mock mode to proceed even if gemini_model is None
+    if gemini_model is None and not USE_MOCK_MODE:
         return "Mentoring advice unavailable."
 
     strategy = get_mentoring_strategy(risk_category)
@@ -205,6 +279,11 @@ def generate_mentoring_advice(student_data, predicted_g3, risk_category, top_fea
     """
 
     try:
+        # Check if mock mode is enabled
+        if USE_MOCK_MODE:
+            logger.info("Using mock advice (MOCK MODE enabled)")
+            return generate_mock_advice(risk_category, predicted_g3, custom_prompt_text)
+        
         response = gemini_model.generate_content(prompt)
         advice_text = getattr(response, 'text', '').strip() or "No advice generated."
         return f"> **{strategy['routing_action']}**\n\n{advice_text}"

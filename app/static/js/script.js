@@ -84,6 +84,11 @@ let lastShapValuesRaw = null;
 let currentAssessmentResults = null;
 let stepIndicatorText = null;
 
+function isQuotaErrorPayload(payload) {
+  const text = (payload?.mentoring_advice || payload?.error || '').toString().toLowerCase();
+  return text.includes('quota') || text.includes('rate limit') || text.includes('429');
+}
+
 // ============================================================================
 // UI HELPERS
 // ============================================================================
@@ -242,11 +247,13 @@ function setupFormEventListeners() {
  * Sets up event listeners for prediction and result display.
  */
 function setupPredictionEventListeners() {
-  const generateAdviceBtn = safeGetElement('generateAdviceBtn', false);
-  if (!generateAdviceBtn) return;
+  const generateAdviceButtons = document.querySelectorAll('#generateAdviceBtn');
+  if (!generateAdviceButtons?.length) return;
 
-  generateAdviceBtn.addEventListener('click', async () => {
-    await handlePredictionRequest();
+  generateAdviceButtons.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await handlePredictionRequest(generateAdviceButtons);
+    });
   });
 }
 
@@ -254,8 +261,7 @@ function setupPredictionEventListeners() {
  * Handles the full prediction workflow.
  * @private
  */
-async function handlePredictionRequest() {
-  const generateAdviceBtn = safeGetElement('generateAdviceBtn', false);
+async function handlePredictionRequest(generateAdviceButtons = []) {
   const formData = gatherFormData();
 
   if (!formData) {
@@ -264,8 +270,8 @@ async function handlePredictionRequest() {
   }
 
   // Show loading state
-  if (generateAdviceBtn) {
-    setButtonLoading(generateAdviceBtn, true, 'Generate Mentoring Advice');
+  if (generateAdviceButtons?.length) {
+    generateAdviceButtons.forEach(btn => setButtonLoading(btn, true, 'Generate Mentoring Advice'));
   }
 
   setMultipleVisibility({
@@ -283,12 +289,22 @@ async function handlePredictionRequest() {
     // 1. Call prediction API
     const result = await predictRisk(formData);
 
-    // 2. Update global state
+    // 2. Handle quota/rate-limit gracefully with a friendly message
+    const quotaHit = isQuotaErrorPayload(result);
+    const safeAdvice = quotaHit
+      ? 'We hit our AI quota just now. Please retry in about a minute, or switch to a key/project with available quota.'
+      : result.mentoring_advice;
+
+    if (quotaHit) {
+      showToast('AI quota is exhausted. Try again shortly.', 'error');
+    }
+
+    // 3. Update global state
     currentAssessmentResults = {
       predicted_grade: result.prediction,
       risk_category: result.risk_category,
       confidence: result.confidence,
-      mentoring_advice: result.mentoring_advice,
+      mentoring_advice: safeAdvice,
       shap_values: result.shap_values
     };
 
@@ -304,8 +320,8 @@ async function handlePredictionRequest() {
     setActionProgress(false);
     toggleResultsSkeleton(false);
 
-    // 4. Render results
-    displayResults(result);
+    // 4. Render results (with friendly advice text if quota hit)
+    displayResults({ ...result, mentoring_advice: safeAdvice });
 
     // 5. Render charts
     if (result.probabilities) {
@@ -323,22 +339,32 @@ async function handlePredictionRequest() {
     }
 
     // 7. Persist to Firebase if auto-save is enabled
-    await persistAssessmentResults(formData, result);
+    await persistAssessmentResults(formData, { ...result, mentoring_advice: safeAdvice });
 
     showToast('Analysis complete!', 'success');
     markFormClean();
   } catch (error) {
     handleError(error, { context: 'Risk Prediction' });
+
+    const quotaError = isQuotaErrorPayload({ error: error?.message });
+    if (quotaError) {
+      const adviceOutput = safeGetElement('adviceOutput', false);
+      if (adviceOutput) {
+        adviceOutput.innerHTML = '<p class="text-sm">We hit our AI quota. Please retry in about a minute, or switch to a key/project with available quota.</p>';
+      }
+    }
+
     setMultipleVisibility({
       loadingSpinner: false,
       resultsSkeleton: false,
-      adviceContent: false
+      adviceContent: quotaError,
+      explanationChartContainer: false
     });
     setActionProgress(false);
     toggleResultsSkeleton(false);
   } finally {
-    if (generateAdviceBtn) {
-      setButtonLoading(generateAdviceBtn, false, 'Generate Mentoring Advice');
+    if (generateAdviceButtons?.length) {
+      generateAdviceButtons.forEach(btn => setButtonLoading(btn, false, 'Generate Mentoring Advice'));
     }
   }
 }
