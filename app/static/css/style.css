@@ -270,6 +270,46 @@ textarea {
     background: rgba(255, 255, 255, 0.05);
 }
 
+/* --- Mobile Menu (Glass) --- */
+#mobileMenu.mobile-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 8px;
+    background: linear-gradient(160deg, rgba(14, 23, 42, 0.95), rgba(8, 14, 26, 0.96));
+    border: 1px solid rgba(124, 248, 255, 0.14);
+    border-radius: 14px;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(16px);
+    padding: 14px 16px;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+
+#mobileMenu.mobile-menu.open {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#mobileMenu.mobile-menu a,
+#mobileMenu.mobile-menu button {
+    color: var(--text-primary);
+    width: 100%;
+    text-align: left;
+    border-radius: 10px;
+    padding: 10px 12px;
+    transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+#mobileMenu.mobile-menu a:hover,
+#mobileMenu.mobile-menu button:hover {
+    background: rgba(124, 248, 255, 0.08);
+    border: 1px solid rgba(124, 248, 255, 0.2);
+    color: var(--accent-2);
+}
+
 /* --- Footer (Neo-Glow) --- */
 .footer-neo {
     background: linear-gradient(160deg, rgba(14, 23, 42, 0.95), rgba(8, 14, 26, 0.98));

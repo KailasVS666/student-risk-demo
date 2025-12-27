@@ -192,7 +192,13 @@
         if (mobileMenuBtn) {
             mobileMenuBtn.addEventListener('click', () => {
                 const menu = document.getElementById('mobileMenu');
-                menu.classList.toggle('hidden');
+                if (menu.classList.contains('hidden')) {
+                    menu.classList.remove('hidden');
+                    menu.classList.add('open');
+                } else {
+                    menu.classList.remove('open');
+                    menu.classList.add('hidden');
+                }
             });
         }
 
