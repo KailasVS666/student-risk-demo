@@ -11,7 +11,7 @@
     </div>
 
     <!-- Filters and Search -->
-    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+    <div class="card-soft panel-spacing mb-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Search -->
             <div class="md:col-span-2">
@@ -57,13 +57,13 @@
     </div>
 
     <!-- Loading State -->
-    <div id="historyLoading" class="text-center py-12 bg-white rounded-xl shadow-md">
+    <div id="historyLoading" class="text-center py-12 card-soft">
         <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
         <p class="mt-4 text-gray-500">Loading assessment history...</p>
     </div>
 
     <!-- Empty State -->
-    <div id="historyEmpty" class="text-center py-16 bg-white rounded-xl shadow-md hidden">
+    <div id="historyEmpty" class="text-center py-16 card-soft hidden">
         <svg class="mx-auto h-20 w-20 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
@@ -227,7 +227,7 @@ import { showToast } from '/static/js/ui-utils.js';
 
     function createHistoryCard(profile) {
         const card = document.createElement('div');
-        card.className = 'bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all duration-200';
+        card.className = 'card-soft panel-spacing hover:shadow-lg transition-all duration-200';
 
         const g1 = profile.G1 || 0;
         const g2 = profile.G2 || 0;

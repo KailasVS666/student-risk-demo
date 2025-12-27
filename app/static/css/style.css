@@ -22,6 +22,35 @@ body {
     @apply bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 transition duration-200 ease-in-out shadow-sm hover:shadow-md focus:ring-4 focus:ring-gray-300;
 }
 
+/* Focus outlines for accessibility */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.35);
+    border-color: #4f46e5;
+}
+
+/* Reusable cards and inputs */
+.card-soft {
+    @apply bg-white rounded-xl shadow-md transition-shadow duration-200;
+}
+
+.card-soft:hover {
+    @apply shadow-lg;
+}
+
+.panel-spacing {
+    @apply p-6 md:p-8;
+}
+
+.input-soft {
+    @apply w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 bg-white;
+}
+
 /* --- Section Header Style --- */
 .section-header {
     @apply border-b-2 border-indigo-200 pb-3;
