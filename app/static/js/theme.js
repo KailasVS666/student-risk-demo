@@ -20,7 +20,7 @@ export function initTheme() {
  */
 export function applyTheme(theme) {
   const htmlEl = document.documentElement;
-  
+
   if (theme === 'dark') {
     htmlEl.classList.add('dark');
   } else {
@@ -28,7 +28,19 @@ export function applyTheme(theme) {
   }
 }
 
-// No toggle support needed; dark-only
+/**
+ * Maintains API parity with previous toggle behavior while keeping dark-only.
+ * We simply ensure the theme is initialized and hide any toggle control if present.
+ */
+export function setupThemeToggle() {
+  initTheme();
+
+  const toggleEl = document.getElementById('themeToggle');
+  if (toggleEl) {
+    toggleEl.classList.add('hidden');
+    toggleEl.setAttribute('aria-hidden', 'true');
+  }
+}
 
 // Initialize theme on module load
 initTheme();
