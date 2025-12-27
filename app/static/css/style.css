@@ -3,23 +3,63 @@
  */
 
 /* --- Typography and Base Styles --- */
-/* The font is linked in index.html, this applies it */
+:root {
+    --bg-deep: #050915;
+    --bg-panel: #0b1220;
+    --bg-panel-2: #0f1a2e;
+    --line-soft: #1a2940;
+    --text-primary: #e6ecff;
+    --text-muted: #a7b5d6;
+    --accent: #5ef2c5;
+    --accent-2: #7cf8ff;
+    --accent-strong: #9ef77b;
+    --glow: 0 18px 60px rgba(94, 242, 197, 0.16);
+    --shadow-soft: 0 10px 40px rgba(5, 9, 21, 0.45);
+}
+
 .font-inter {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 body {
-    /* Apply Inter font and background color defined in index.html */
     @apply antialiased;
+    font-family: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(120% 80% at 20% 20%, rgba(124, 248, 255, 0.06), transparent 40%),
+                radial-gradient(120% 80% at 80% 0%, rgba(94, 242, 197, 0.08), transparent 35%),
+                linear-gradient(135deg, #050915 0%, #0a1223 50%, #050915 100%);
+    color: var(--text-primary);
 }
 
 /* --- Button Styles --- */
 .btn-primary {
-    @apply bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition duration-200 ease-in-out shadow-md hover:shadow-lg focus:ring-4 focus:ring-indigo-300;
+    background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent) 100%);
+    color: #06101f;
+    border: 1px solid rgba(124, 248, 255, 0.45);
+    box-shadow: var(--glow);
+    transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 18px 50px rgba(124, 248, 255, 0.25);
+    filter: saturate(1.05);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
 }
 
 .btn-secondary {
-    @apply bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 transition duration-200 ease-in-out shadow-sm hover:shadow-md focus:ring-4 focus:ring-gray-300;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    border: 1px solid rgba(166, 181, 214, 0.25);
+    backdrop-filter: blur(10px);
+    transition: transform 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.btn-secondary:hover {
+    transform: translateY(-1px);
+    border-color: rgba(124, 248, 255, 0.45);
 }
 
 /* Focus outlines for accessibility */
@@ -36,11 +76,17 @@ textarea:focus-visible {
 
 /* Reusable cards and inputs */
 .card-soft {
-    @apply bg-white rounded-xl shadow-md transition-shadow duration-200;
+    background: linear-gradient(145deg, rgba(17, 25, 45, 0.96), rgba(12, 19, 34, 0.96));
+    border: 1px solid rgba(124, 248, 255, 0.08);
+    border-radius: 14px;
+    box-shadow: var(--shadow-soft);
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
 .card-soft:hover {
-    @apply shadow-lg;
+    border-color: rgba(124, 248, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 50px rgba(6, 16, 31, 0.65);
 }
 
 .panel-spacing {
@@ -48,12 +94,77 @@ textarea:focus-visible {
 }
 
 .input-soft {
-    @apply w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 bg-white;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(166, 181, 214, 0.35);
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.input-soft:focus {
+    outline: none;
+    border-color: rgba(124, 248, 255, 0.55);
+    box-shadow: 0 0 0 4px rgba(124, 248, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* --- Glass Navigation --- */
+.glass-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(10, 18, 35, 0.9);
+    border-bottom: 1px solid rgba(124, 248, 255, 0.12);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.glass-nav .nav-link {
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+}
+
+.glass-nav .nav-link.active,
+.glass-nav .nav-link:hover {
+    color: var(--accent-2);
+    border-color: var(--accent-2);
+}
+
+.glass-nav .btn-icon {
+    color: var(--text-muted);
+    transition: color 150ms ease, background 150ms ease;
+}
+
+.glass-nav .btn-icon:hover {
+    color: var(--accent-2);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 /* --- Section Header Style --- */
 .section-header {
-    @apply border-b-2 border-indigo-200 pb-3;
+    border-bottom: 1px solid var(--line-soft);
+    padding-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.neo-panel {
+    background: linear-gradient(160deg, rgba(14, 23, 42, 0.9), rgba(8, 14, 26, 0.95));
+    border: 1px solid rgba(124, 248, 255, 0.12);
+    border-radius: 16px;
+    box-shadow: var(--shadow-soft);
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(124, 248, 255, 0.08);
+    color: var(--text-primary);
+    border: 1px solid rgba(124, 248, 255, 0.18);
 }
 
 /* --- Wizard Progress Bar --- */
@@ -108,7 +219,82 @@ textarea:focus-visible {
 }
 
 
+/* --- Sticky Action Bar --- */
+.action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: linear-gradient(145deg, rgba(10, 18, 35, 0.92), rgba(8, 14, 26, 0.95));
+    border-top: 1px solid rgba(124, 248, 255, 0.18);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.45);
+    padding: 16px 24px;
+}
+
+.action-bar__inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1536px;
+    margin: 0 auto;
+}
+
+.action-bar button {
+    transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.action-bar button:hover {
+    transform: translateY(-2px);
+}
+
+.action-bar .btn-primary:hover {
+    box-shadow: 0 16px 45px rgba(124, 248, 255, 0.3);
+}
+
 /* --- Custom Range Slider Styles (for better UX) --- */
+input[type="range"] {
+    appearance: none;
+    height: 8px;
+    width: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(94, 242, 197, 0.18), rgba(124, 248, 255, 0.28));
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 4px 14px rgba(94, 242, 197, 0.5);
+    transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 6px 20px rgba(94, 242, 197, 0.6);
+}
+
+input[type="range"]::-moz-range-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 4px 14px rgba(94, 242, 197, 0.5);
+    transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 6px 20px rgba(94, 242, 197, 0.6);
+}
+
 input[type="range"] {
     @apply appearance-none h-2 w-full rounded-full bg-indigo-100 cursor-pointer;
 }
@@ -124,15 +310,21 @@ input[type="range"]::-moz-range-thumb {
 
 /* --- RISK LEVEL BADGE STYLES (CRITICAL UI FEATURE) --- */
 .risk-low {
-    @apply bg-green-100 text-green-800 border-green-300;
+    background: rgba(94, 242, 197, 0.12);
+    color: #a5ffd6;
+    border: 1px solid rgba(94, 242, 197, 0.45);
 }
 
 .risk-medium {
-    @apply bg-yellow-100 text-yellow-800 border-yellow-300;
+    background: rgba(251, 191, 36, 0.12);
+    color: #fde68a;
+    border: 1px solid rgba(251, 191, 36, 0.4);
 }
 
 .risk-high {
-    @apply bg-red-100 text-red-800 border-red-300;
+    background: rgba(248, 113, 113, 0.12);
+    color: #fecdd3;
+    border: 1px solid rgba(248, 113, 113, 0.4);
 }
 
 
