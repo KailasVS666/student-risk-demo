@@ -251,46 +251,8 @@
             }, 3000);
         }
 
-        // Theme toggle fallback for pages that don't import theme.js module
-        const themeToggleBtn = document.getElementById('themeToggle');
-        if (themeToggleBtn) {
-            const handleThemeToggle = (e) => {
-                e.preventDefault();
-                const key = 'student_assessment_theme';
-                const current = localStorage.getItem(key) || 'light';
-                const next = current === 'light' ? 'dark' : 'light';
-                localStorage.setItem(key, next);
-                
-                // Apply theme to html element (Tailwind dark mode uses this)
-                const htmlEl = document.documentElement;
-                if (next === 'dark') {
-                    htmlEl.classList.add('dark');
-                } else {
-                    htmlEl.classList.remove('dark');
-                }
-                
-                // Update icons
-                const lightIcon = document.getElementById('themeIconLight');
-                const darkIcon = document.getElementById('themeIconDark');
-                if (lightIcon && darkIcon) {
-                    if (next === 'dark') {
-                        lightIcon.classList.remove('hidden');
-                        darkIcon.classList.add('hidden');
-                    } else {
-                        lightIcon.classList.add('hidden');
-                        darkIcon.classList.remove('hidden');
-                    }
-                }
-                console.log('Theme toggled to:', next);
-            };
-            
-            // Don't add if theme.js already added a handler
-            if (!themeToggleBtn.classList.contains('theme-handler-attached')) {
-                themeToggleBtn.addEventListener('click', handleThemeToggle);
-                themeToggleBtn.classList.add('theme-handler-attached');
-                console.log('Theme toggle fallback handler attached');
-            }
-        }
+        // Theme toggle is handled by theme.js module imported in script.js
+        // No fallback needed since script.js always calls setupThemeToggle()
 
 
         // Highlight active nav link
