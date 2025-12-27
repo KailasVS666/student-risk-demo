@@ -37,11 +37,28 @@ def csrf_exempt_api(f):
 
 main_bp = Blueprint('main', __name__)
 
-# Pathing Configuration
+# Pathing Configuration - Support both local and Render deployments
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, 'early_warning_model_pipeline_tuned.joblib')
-SHAP_EXPLAINER_PATH = os.path.join(BASE_DIR, 'student_risk_classifier_tuned.joblib')
-LABEL_ENCODER_PATH = os.path.join(BASE_DIR, 'label_encoder.joblib')
+CWD = os.getcwd()
+
+# Try multiple paths for models (for local dev and Render)
+def _find_model_path(filename):
+    """Find model file in multiple locations"""
+    search_paths = [
+        os.path.join(BASE_DIR, filename),  # app/../filename
+        os.path.join(CWD, filename),        # current working directory
+        filename                             # relative to current dir
+    ]
+    for path in search_paths:
+        if os.path.exists(path):
+            logger.info(f"Found {filename} at: {path}")
+            return path
+    logger.error(f"Model file {filename} not found in any search path: {search_paths}")
+    return os.path.join(BASE_DIR, filename)  # Return default (will fail gracefully)
+
+MODEL_PATH = _find_model_path('early_warning_model_pipeline_tuned.joblib')
+SHAP_EXPLAINER_PATH = _find_model_path('student_risk_classifier_tuned.joblib')
+LABEL_ENCODER_PATH = _find_model_path('label_encoder.joblib')
 
 # Load Models
 pipeline = None
@@ -386,11 +403,21 @@ def predict_risk():
     Expected JSON body: Student assessment form data with G1, G2, age, school, sex, etc.
     Returns: JSON with prediction, risk_category, shap_values, mentoring_advice
     """
-    if pipeline is None:
-        logger.error("Prediction attempted but models not loaded")
+    # Check models first and provide detailed error response
+    if pipeline is None or label_encoder is None:
+        error_msg = "Models not loaded. "
+        missing = []
+        if pipeline is None:
+            missing.append("ML pipeline")
+        if label_encoder is None:
+            missing.append("label encoder")
+        error_msg += f"Missing: {', '.join(missing)}. "
+        error_msg += f"Model paths: pipeline={MODEL_PATH}, encoder={LABEL_ENCODER_PATH}"
+        logger.error(error_msg)
         return jsonify({
-            "error": "Models not loaded. Please contact support.",
-            "status": "error"
+            "error": "Server initialization incomplete. Please try again in a moment.",
+            "status": "service_unavailable",
+            "detail": error_msg if os.getenv('ENVIRONMENT') == 'development' else None
         }), 503
 
     try:

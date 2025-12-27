@@ -128,15 +128,41 @@ def create_app():
         logging.warning(f"Extension initialization failed: {e}")
 
     # --- Load Machine Learning Models ---
+    # Support both local dev and Render deployments with path resolution
+    def _find_model_file(filename):
+        """Find model file in multiple locations"""
+        base = os.path.dirname(os.path.abspath(__file__))
+        search_paths = [
+            os.path.join(base, '..', filename),  # app/../filename
+            os.path.join(os.getcwd(), filename),  # current working directory
+            filename                               # relative
+        ]
+        for path in search_paths:
+            if os.path.exists(path):
+                logging.info(f"Found {filename} at: {os.path.abspath(path)}")
+                return path
+        logging.error(f"Model {filename} not found. Checked: {search_paths}")
+        return filename  # Return original, will fail with useful error
+    
     try:
-        app.config['MODEL_PIPELINE'] = joblib.load('early_warning_model_pipeline_tuned.joblib')
-        app.config['LABEL_ENCODER'] = joblib.load('label_encoder.joblib')
-        app.config['CORE_MODEL'] = joblib.load('student_risk_classifier_tuned.joblib')
+        pipeline_path = _find_model_file('early_warning_model_pipeline_tuned.joblib')
+        encoder_path = _find_model_file('label_encoder.joblib')
+        model_path = _find_model_file('student_risk_classifier_tuned.joblib')
+        
+        app.config['MODEL_PIPELINE'] = joblib.load(pipeline_path)
+        app.config['LABEL_ENCODER'] = joblib.load(encoder_path)
+        app.config['CORE_MODEL'] = joblib.load(model_path)
         logging.info("All models loaded successfully.")
-    except FileNotFoundError:
-        logging.warning("Model files not found! Make sure to run train_model.py first.")
+    except FileNotFoundError as e:
+        logging.warning(f"Model file not found: {e}. Make sure to upload model files to Render or run train_model.py")
+        app.config['MODEL_PIPELINE'] = None
+        app.config['LABEL_ENCODER'] = None
+        app.config['CORE_MODEL'] = None
     except Exception as e:
         logging.exception(f"Error loading models: {e}")
+        app.config['MODEL_PIPELINE'] = None
+        app.config['LABEL_ENCODER'] = None
+        app.config['CORE_MODEL'] = None
 
     # --- Load Pre-calculated Averages ---
     try:

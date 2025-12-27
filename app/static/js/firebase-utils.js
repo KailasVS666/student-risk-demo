@@ -52,6 +52,8 @@ export function initializeFirebase() {
   try {
     // Initialize Firebase only if not already initialized
     if (!firebase.apps.length) {
+      // Use the modern Firebase SDK initialization (avoid deprecation warning)
+      // The config object should be passed directly to initializeApp
       firebase.initializeApp(config);
       console.log('Firebase initialized successfully');
     }
