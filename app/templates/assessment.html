@@ -3,11 +3,44 @@
 {% block title %}Student Assessment - AI Student Mentor{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
-    <!-- Page Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">Student Risk Assessment</h1>
-        <p class="text-gray-600">Complete the student profile to receive AI-powered risk analysis and mentoring advice</p>
+<div class="max-w-7xl mx-auto space-y-8" data-animate="fade">
+    <!-- Page Header / Hero -->
+    <div class="card-soft panel-spacing relative overflow-hidden animated-gradient">
+        <div class="absolute inset-0 opacity-40 rotate-slow" aria-hidden="true"></div>
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div class="space-y-3">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-sm text-indigo-100">
+                    <span class="w-2 h-2 bg-emerald-300 rounded-full animate-pulse"></span>
+                    Live AI Assessment
+                </div>
+                <h1 class="text-3xl lg:text-4xl font-bold leading-tight text-primary">Student Risk Assessment</h1>
+                <p class="text-muted max-w-2xl">Complete the profile to get AI-powered risk analysis, SHAP explainability, and tailored mentoring advice.</p>
+                <div class="flex flex-wrap gap-3">
+                    <span class="pill">LightGBM</span>
+                    <span class="pill">SHAP Explainability</span>
+                    <span class="pill">Gemini 2.0 Flash</span>
+                    <span class="pill">Firebase Secure Profiles</span>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4 w-full lg:w-auto" data-animate="slide-left">
+                <div class="card-soft p-4 text-center card-hover-glow" data-tilt>
+                    <div class="text-sm text-muted">Pred. Accuracy</div>
+                    <div class="text-2xl font-bold gradient-text" id="hero-accuracy">85%</div>
+                </div>
+                <div class="card-soft p-4 text-center card-hover-glow" data-tilt>
+                    <div class="text-sm text-muted">Features</div>
+                    <div class="text-2xl font-bold gradient-text" id="hero-features">30+</div>
+                </div>
+                <div class="card-soft p-4 text-center card-hover-glow" data-tilt>
+                    <div class="text-sm text-muted">Assessments</div>
+                    <div class="text-2xl font-bold gradient-text">Unlimited</div>
+                </div>
+                <div class="card-soft p-4 text-center card-hover-glow" data-tilt>
+                    <div class="text-sm text-muted">Export</div>
+                    <div class="text-2xl font-bold gradient-text">PDF & CSV</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -75,8 +108,8 @@
                     Student Profile
                 </h2>
                 
-                <!-- Progress Bar -->
-                <div class="mb-10">
+                <div class="card-soft panel-spacing card-hover-glow" data-animate="slide-right" data-tilt>
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 flex items-center border-b pb-2">
                     <div class="flex items-center justify-between">
                         <div class="flex-1 flex items-center">
                             <div class="progress-step active" data-step="1">
@@ -87,18 +120,18 @@
                         </div>
                         <div class="flex-1 flex items-center">
                             <div class="progress-step" data-step="2">
-                                <div class="step-circle">2</div>
-                                <span class="step-label">Academics</span>
+                                    class="input-soft">
+                            <button id="saveProfileBtn" data-ripple data-magnetic class="mt-2 w-full px-4 py-2 rounded-lg font-bold btn-primary text-gray-900">
                             </div>
                             <div class="flex-auto border-t-2 border-gray-300 progress-line mx-2"></div>
                         </div>
                         <div class="flex-1 flex items-center justify-end">
                             <div class="progress-step" data-step="3">
                                 <div class="step-circle">3</div>
-                                <span class="step-label">Lifestyle</span>
+                            <select id="loadProfileSelect" class="input-soft">
                             </div>
                         </div>
-                    </div>
+                            <button id="loadProfileBtn" data-ripple class="mt-2 w-full px-4 py-2 rounded-lg font-bold btn-secondary">
                 </div>
 
                 <!-- Form Steps -->
@@ -106,30 +139,30 @@
                     <!-- Step 1: Demographics -->
                     <div class="form-step active-step">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Left Column -->
+                <div class="card-soft panel-spacing card-hover-glow" data-animate="slide-right" data-tilt>
                             <div class="space-y-5">
                                 <h3 class="text-xl font-bold text-gray-800 mb-4">Demographics & Family</h3>
                                 
-                                <div>
+                        <textarea id="customPrompt" rows="3" class="input-soft"
                                     <label class="block text-sm font-medium text-gray-700 mb-2">School</label>
                                     <select id="school" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
                                         <option value="GP">Gabriel Pereira</option>
                                         <option value="MS">Mousinho da Silveira</option>
                                     </select>
-                                </div>
-                                
+                <div class="card-soft panel-spacing space-y-3 card-hover-glow" data-animate="slide-right" data-tilt>
+                    <button id="generateAdviceBtn" data-ripple data-magnetic class="w-full px-4 py-3 rounded-lg font-bold text-gray-900 btn-primary disabled:opacity-50" disabled>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Sex</label>
-                                    <select id="sex" class="w-full rounded-lg border-gray-300 shadow-sm p-2 focus:border-indigo-500 focus:ring-indigo-500">
+                    <button id="clearFormBtn" data-ripple class="w-full px-4 py-3 rounded-lg font-bold btn-secondary">
                                         <option value="F">Female</option>
                                         <option value="M">Male</option>
                                     </select>
                                 </div>
                                 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Age: <span id="ageValue" class="font-semibold text-indigo-600">17</span></label>
-                                    <input type="range" id="age" min="15" max="22" value="17" class="w-full">
-                                </div>
+            <div class="lg:col-span-3">
+                <section id="inputForm" class="card-soft panel-spacing card-hover-glow" data-animate="slide-up">
+                    <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
                                 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
@@ -398,13 +431,13 @@
                 <!-- Navigation Buttons -->
                 <div class="mt-10 pt-5 border-t border-gray-200">
                     <div class="flex justify-between">
-                        <button id="prevBtn" class="px-6 py-3 rounded-lg font-bold bg-gray-600 text-white hover:bg-gray-700 transition-colors">
+                        <button id="prevBtn" data-ripple class="px-6 py-3 rounded-lg font-bold btn-secondary">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
                             Previous
                         </button>
-                        <button id="nextBtn" class="px-6 py-3 rounded-lg font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+                        <button id="nextBtn" data-ripple data-magnetic class="px-6 py-3 rounded-lg font-bold btn-primary text-gray-900">
                             Next
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -452,13 +485,13 @@
 <script type="module" src="{{ url_for('static', filename='js/script.js') }}"></script>
 
 <script type="module" nonce="{{ csp_nonce() }}">
-import { initScrollAnimations, initMagneticButtons, initRippleButtons } from '/static/js/animations.js';
+import { initScrollAnimations, initMagneticButtons, initRippleButtons, initCardTilt } from "{{ url_for('static', filename='js/animations.js') }}";
 
-// Initialize animations on page load
 document.addEventListener('DOMContentLoaded', () => {
     initScrollAnimations();
     initMagneticButtons();
     initRippleButtons();
+    initCardTilt();
 });
 </script>
 {% endblock %}
