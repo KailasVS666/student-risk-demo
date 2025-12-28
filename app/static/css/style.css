@@ -1621,16 +1621,21 @@ canvas {
     left: -2px;
     right: -2px;
     bottom: -2px;
-    background: linear-gradient(45deg, var(--accent), var(--accent-2), var(--accent-strong));
+    background: linear-gradient(
+        45deg,
+        rgba(94, 242, 197, 0.22),
+        rgba(124, 248, 255, 0.2),
+        rgba(158, 247, 123, 0.18)
+    );
     border-radius: inherit;
-    opacity: 0;
+    opacity: 0.22;
     z-index: -1;
     transition: opacity 0.3s ease;
-    filter: blur(8px);
+    filter: blur(14px);
 }
 
 .card-hover-glow:hover::before {
-    opacity: 1;
+    opacity: 0.55;
 }
 
 /* --- Progress Ring Animation --- */
