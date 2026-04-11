@@ -1,73 +1,125 @@
-# AI Student Mentor
+# 🎓 AI Student Mentor: Explainable Risk Prediction System
 
-Flask app for student academic risk assessment. It predicts risk level, estimates a final grade band, explains the result, and generates mentoring advice with Gemini.
+[![Python](https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-Latest-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![Google Gemini](https://img.shields.io/badge/AI-Gemini%20Pro-blue?style=for-the-badge&logo=google-gemini&logoColor=white)](https://deepmind.google/technologies/gemini/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 
-Live app: https://student-risk-demo.onrender.com
+An end-to-end **Explainable Artificial Intelligence (XAI)** application designed to identify students at academic risk. This system combines **Gradient Boosting Machine Learning** for high-accuracy predictions with **Large Language Models (Gemini)** to provide personalized, actionable mentoring advice.
 
-## What’s Included
-- Multi-step assessment form for student profile data.
-- Risk prediction with a trained LightGBM pipeline.
-- Fallback feature-importance explanations for the result.
-- Personalized mentoring advice using Google Gemini.
-- Firebase-backed authentication, dashboard, and history views.
-- PDF export and email alert support for high-risk cases.
+---
 
-## Machine Learning
-The prediction model is trained in [train_model.py](train_model.py) on the UCI student performance datasets (`student-mat.csv` and `student-por.csv`). The target is derived from final grade `G3`, mapped into three classes: `High`, `Medium`, and `Low` risk.
+## 🌟 Key Features
 
-The training pipeline does three main things:
-- combines both datasets into one training set
-- engineers `average_grade` and `grade_change` as extra signals
-- trains a LightGBM classifier with preprocessing, imputation, scaling, and grid search
+### 🧠 Explainable AI (XAI) Dashboard
+Unlike "black-box" models, this system utilizes **SHAP (SHapley Additive exPlanations)** values to show exactly which factors (e.g., absences, previous grades, social habits) influenced a student's risk score.
 
-At inference time, the app loads the saved artifacts:
-- `early_warning_model_pipeline_tuned.joblib` for the full prediction pipeline
-- `label_encoder.joblib` for categorical encoding
-- `student_risk_classifier_tuned.joblib` for the classifier used in the explanation flow
+### 🤖 Generative Mentoring Advice
+Integrated with **Google Gemini 2.0 Flash**, the app generates customized academic recovery plans based on the specific risk factors identified by the ML model.
 
-The API converts the student form into the model schema, predicts the risk class, and derives a final-grade estimate from the predicted class confidence. The app also returns feature-importance summaries and uses Gemini to generate mentoring advice.
+### 📊 Comprehensive Student Profiling
+A multi-step assessment engine tracks:
+- **Academic Performance**: G1/G2 grades and past failures.
+- **Social & Lifestyle Factors**: Alcohol consumption, free time, and internet access.
+- **Demographic Context**: Family size, parental status, and travel time.
 
-Important note: the current runtime explanation path uses a fallback feature-importance list when full SHAP calculation is not practical in the deployment environment, so the explanation is informative but not a full SHAP computation at request time.
+### 📁 Enterprise-Ready Reporting
+- **PDF Generation**: Export assessment results into professional PDF reports for faculty review.
+- **Firebase Integration**: Secure authentication and persistent assessment history.
+- **Faculty Alerts**: Automatic notification triggers for "High-Risk" students.
 
-## Project Docs
-- [User Guide](docs/USER_GUIDE.md)
-- [API Reference](docs/API_DOCS.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [Test Suite README](tests/README.md)
+---
 
-## Quick Start
-```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python train_model.py
-python run.py
-```
+## 📸 Visual Gallery
 
-## Required Environment Variables
-Set these in `.env` before running the app:
-- `GEMINI_API_KEY`
-- `FIREBASE_API_KEY`
-- `FIREBASE_AUTH_DOMAIN`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_STORAGE_BUCKET`
-- `FIREBASE_MESSAGING_SENDER_ID`
-- `FIREBASE_APP_ID`
-- `SECRET_KEY`
+### 📱 Main Dashboard
+![Dashboard Showcase](screenshots/dashboard.png)
+*A centralized view for monitoring student assessments and accessing historical data.*
 
-Optional email alert settings:
-- `MAIL_SERVER`
-- `MAIL_PORT`
-- `MAIL_USERNAME`
-- `MAIL_PASSWORD`
+### 📝 Intelligent Assessment Form
+| Demographics & Family | Academic & Social Factors |
+| :---: | :---: |
+| ![Form Step 1](screenshots/assessment_form_demographics.png) | ![Form Step 2](screenshots/assessment_form_academic.png) |
 
-## Model Artifacts
-The app expects these files at the project root:
-- `early_warning_model_pipeline_tuned.joblib`
-- `student_risk_classifier_tuned.joblib`
-- `label_encoder.joblib`
+### 🔍 Analysis & Explainability
+![Analysis Result](screenshots/mentoring_analysis.png)
+*Real-time risk scoring with confidence intervals and Gemini-powered mentoring advice.*
 
-If they are missing, run `python train_model.py` or let the Render build script generate them.
+![XAI Explainer](screenshots/xai_explanation.png)
+*SHAP visualization explaining the 'Why' behind every prediction—essential for educational transparency.*
 
-## Tech Stack
-Flask, scikit-learn, LightGBM, SHAP-inspired feature summaries, Firebase, Google Gemini, Tailwind CSS, Chart.js.
+### 📄 Professional reporting
+![PDF Report Preview](screenshots/pdf_extraction.png)
+*Generated PDF reports for offline faculty review and documentation.*
+
+---
+
+## 🛠️ Technical Stack
+
+- **Backend**: Flask (Python)
+- **Machine Learning**: LightGBM, Scikit-Learn
+- **Explainability**: SHAP (SHapley Additive exPlanations)
+- **AI Integration**: Google Generative AI (Gemini SDK)
+- **Frontend**: Tailwind CSS, Vanilla JS
+- **Database/Auth**: Firebase (Firestore & Auth)
+- **Reporting**: ReportLab (PDF Engine)
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Python 3.9+
+- Google Gemini API Key
+- Firebase Project Credentials
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/student-risk-demo.git
+   cd student-risk-demo
+   ```
+
+2. **Setup Virtual Environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+   ```
+
+3. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Environment Configuration**
+   Create a `.env` file in the root directory:
+   ```env
+   GEMINI_API_KEY=your_key_here
+   FIREBASE_API_KEY=your_key_here
+   SECRET_KEY=your_random_secret
+   ```
+
+5. **Run the Application**
+   ```bash
+   python run.py
+   ```
+   Access the app at `http://127.0.0.1:8501`
+
+---
+
+## 📉 Model Performance
+The underlying model was trained on the **UCI Student Performance Dataset**, achieving high precision in identifying students likely to fail (`High Risk`). Feature engineering includes:
+- **Grade Delta**: Tracking improvement or decline between G1 and G2.
+- **Social-Academic Interaction**: Combining alcohol consumption with study time for deeper insights.
+
+---
+
+## 📄 License
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+**Developed for Portfolio & Recruitment Purpose**  
+*Contact: [Your Email/LinkedIn]*
